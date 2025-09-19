@@ -1,15 +1,15 @@
+// backend/routes/auth.js
 const express = require('express');
 const router = express.Router();
-const pool = require('../db'); // PostgreSQL 연결
-const jwt = require('jsonwebtoken');
+const pool = require('../db');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 // 회원가입
 router.post('/signup', async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
-    // 비밀번호 해시
     const hashed = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
@@ -19,10 +19,7 @@ router.post('/signup', async (req, res) => {
 
     res.json({ message: '회원가입 성공', user: result.rows[0] });
   } catch (err) {
-    console.error(err);
-    if (err.code === '23505') { // PostgreSQL unique constraint
-      return res.status(400).json({ message: '이미 존재하는 이메일 또는 닉네임입니다.' });
-    }
+    if (err.code === '23505') return res.status(400).json({ message: '이미 존재하는 이메일 또는 닉네임' });
     res.status(500).json({ message: '서버 오류' });
   }
 });
@@ -32,26 +29,14 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // 유저 조회
     const result = await pool.query('SELECT * FROM users WHERE email=$1', [email]);
     if (!result.rows.length) return res.status(401).json({ message: '사용자 없음' });
 
     const user = result.rows[0];
-
-    // 비밀번호 검증
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ message: '비밀번호 틀림' });
 
-    // JWT 생성
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET 값이 정의되어 있지 않습니다.');
-    }
-
-    const token = jwt.sign(
-      { userId: user.user_id, username: user.username },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
+    const token = jwt.sign({ userId: user.user_id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({
       message: '로그인 성공',
@@ -59,7 +44,6 @@ router.post('/login', async (req, res) => {
       token
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: '서버 오류' });
   }
 });

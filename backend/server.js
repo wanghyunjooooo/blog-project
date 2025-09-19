@@ -1,35 +1,32 @@
-require('dotenv').config(); // .env 로드
+// backend/server.js
 const express = require('express');
-const path = require('path');
+const dotenv = require('dotenv');
 const cors = require('cors');
+const path = require('path');
 
+// 환경변수 로드
+dotenv.config();
 
+// 앱 생성
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-const authRouter = require('./routes/auth');
-const usersRouter = require('./routes/users');
 
 // 미들웨어
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use(express.json()); // JSON body 파싱
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // 이미지 접근
 
-// 정적 파일 제공 (프론트)
+// frontend 정적 파일 제공 (Go Live 대신 브라우저에서 확인용)
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// 업로드 폴더 접근 허용
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// 라우터
+const authRouter = require('./routes/auth');
+const profileRouter = require('./routes/profile');
 
-// 라우트
 app.use('/auth', authRouter);
-app.use('/users', usersRouter);
+app.use('/users', profileRouter);
 
-// 기본 라우트
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
+// 서버 실행
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

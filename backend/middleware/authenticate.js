@@ -1,3 +1,4 @@
+// backend/middleware/authenticate.js
 const jwt = require('jsonwebtoken');
 
 function authenticate(req, res, next) {
@@ -7,7 +8,7 @@ function authenticate(req, res, next) {
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ message: '유효하지 않은 토큰' });
-    req.user = decoded; // user_id 포함
+    req.user = decoded; // userId 포함
     next();
   });
 }
