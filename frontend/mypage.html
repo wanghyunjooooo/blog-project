@@ -3,99 +3,166 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>마이페이지</title>
+  <title>My Page</title>
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {
-      background: linear-gradient(to right, #f8f9fa, #e9ecef);
-      min-height: 100vh;
-    }
-    .profile-card {
-      border-radius: 1rem;
-      overflow: hidden;
-    }
-    .profile-header {
-      background: #0d6efd;
-      color: white;
-      padding: 2rem 1rem;
-      text-align: center;
-    }
     .profile-img {
-      width: 130px;
-      height: 130px;
+      width: 120px;
+      height: 120px;
       object-fit: cover;
       border-radius: 50%;
-      border: 4px solid white;
-      margin-top: -65px;
+      border: 4px solid #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.15);
     }
-    .intro-text {
-      font-style: italic;
-      color: #6c757d;
-    }
-    .post-card {
-      border-radius: 0.75rem;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .post-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-    }
+    .card { border-radius: 12px; }
+    #profileForm { display: none; }
   </style>
 </head>
 <body>
 
-  <div class="container py-5">
-    <!-- 프로필 카드 -->
-    <div class="card shadow profile-card mb-5">
-      <div class="profile-header">
-        <h2 class="fw-bold">Mypage</h2>
-      </div>
-      <div class="card-body text-center">
-        <img src="https://via.placeholder.com/130" alt="Profile Image" class="profile-img">
-        <h4 class="mt-3 fw-bold" id="username">hyunjoo</h4>
-        <p class="intro-text" id="intro">안녕하세요! 블로그에 오신 걸 환영합니다 😊</p>
-        <div class="d-flex justify-content-center gap-3 mt-3">
-          <button class="btn btn-outline-primary">내 프로필</button>
-          <button class="btn btn-outline-danger">로그아웃</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 내 게시물 -->
-    <h4 class="fw-bold mb-3">📌 내 게시물</h4>
-    <div class="row g-4">
-      <!-- 게시물 카드 1 -->
-      <div class="col-md-6">
-        <div class="card post-card shadow-sm h-100">
-          <div class="card-body d-flex flex-column">
-            <h5 class="card-title fw-bold">첫 번째 게시물</h5>
-            <p class="card-text text-muted">이건 첫 번째 게시물 요약입니다. 간단하게 설명을 적을 수 있어요.</p>
-            <div class="mt-auto d-flex gap-2">
-              <button class="btn btn-sm btn-warning flex-fill">수정</button>
-              <button class="btn btn-sm btn-danger flex-fill">삭제</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- 게시물 카드 2 -->
-      <div class="col-md-6">
-        <div class="card post-card shadow-sm h-100">
-          <div class="card-body d-flex flex-column">
-            <h5 class="card-title fw-bold">두 번째 게시물</h5>
-            <p class="card-text text-muted">이건 두 번째 게시물 요약입니다. 여기서도 내용 일부를 보여줍니다.</p>
-            <div class="mt-auto d-flex gap-2">
-              <button class="btn btn-sm btn-warning flex-fill">수정</button>
-              <button class="btn btn-sm btn-danger flex-fill">삭제</button>
-            </div>
-          </div>
-        </div>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="#">MyBlog</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="main.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="post.html">Post</a></li>
+          <li class="nav-item"><a class="nav-link active" href="mypage.html">My</a></li>
+        </ul>
       </div>
     </div>
+  </nav>
 
+  <!-- Profile Section -->
+  <div class="container my-5">
+    <div class="card p-4 shadow-sm">
+      <div class="text-center mb-4">
+        <img id="profilePreview" src="https://via.placeholder.com/120" class="profile-img mb-3" alt="프로필 사진">
+        <h4 id="usernameDisplay">hyunjoo</h4>
+        <p id="introDisplay" class="text-muted">소개글: 안녕하세요, 블로그 운영자입니다 😊</p>
+        <div class="d-flex justify-content-center gap-2">
+          <button id="editBtn" class="btn btn-outline-primary btn-sm">프로필 수정</button>
+          <button id="logoutBtn" class="btn btn-outline-secondary btn-sm">로그아웃</button>
+        </div>
+      </div>
+
+      <!-- 프로필 수정 폼 -->
+      <form id="profileForm">
+        <div class="mb-3">
+          <label for="username" class="form-label">닉네임</label>
+          <input type="text" class="form-control" id="username" placeholder="닉네임 입력">
+        </div>
+        <div class="mb-3">
+          <label for="intro" class="form-label">소개글</label>
+          <textarea class="form-control" id="intro" rows="3" placeholder="소개글 입력"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="profilePic" class="form-label">프로필 사진</label>
+          <input type="file" class="form-control" id="profilePic" accept="image/*">
+        </div>
+        <button type="submit" class="btn btn-success w-100">저장하기</button>
+      </form>
+    </div>
   </div>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    const editBtn = document.getElementById('editBtn');
+    const form = document.getElementById('profileForm');
+    const profilePreview = document.getElementById('profilePreview');
+    const usernameDisplay = document.getElementById('usernameDisplay');
+    const introDisplay = document.getElementById('introDisplay');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // 로그인 토큰 가져오기
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('로그인 후 접근 가능합니다.');
+      window.location.href = 'index.html';
+    }
+
+    // 로그아웃
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = 'index.html';
+    });
+
+    // 수정 버튼 클릭 시 폼 토글
+    editBtn.addEventListener('click', () => {
+      form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      document.getElementById('username').value = usernameDisplay.textContent;
+      document.getElementById('intro').value = introDisplay.textContent !== '소개글 없음' ? introDisplay.textContent.replace('소개글: ', '') : '';
+    });
+
+    // 이미지 미리보기
+    document.getElementById('profilePic').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) profilePreview.src = URL.createObjectURL(file);
+    });
+
+    // 폼 제출
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value.trim();
+      const intro = document.getElementById('intro').value.trim();
+      const file = document.getElementById('profilePic').files[0];
+
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('intro', intro);
+      if (file) formData.append('profilePic', file);
+
+      try {
+        const res = await fetch('http://localhost:3000/users/update-profile', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          usernameDisplay.textContent = data.user.username;
+          introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
+          if (data.user.profileImgUrl) profilePreview.src = data.user.profileImgUrl;
+          form.style.display = 'none';
+        } else {
+          alert(data.message);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('서버 오류 발생');
+      }
+    });
+
+    // 페이지 로드 시 프로필 정보 가져오기
+    (async function fetchProfile() {
+      try {
+        const res = await fetch('http://localhost:3000/users/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          usernameDisplay.textContent = data.user.username;
+          introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
+          if (data.user.profileImgUrl) profilePreview.src = data.user.profileImgUrl;
+        } else {
+          alert(data.message);
+          window.location.href = 'index.html';
+        }
+      } catch (err) {
+        console.error(err);
+        alert('서버 오류 발생');
+      }
+    })();
+  </script>
 </body>
 </html>

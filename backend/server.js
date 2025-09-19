@@ -1,22 +1,29 @@
+require('dotenv').config(); // .env 로드
 const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 3000;
 const path = require('path');
 const cors = require('cors');
+
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
 const authRouter = require('./routes/auth');
+const usersRouter = require('./routes/users');
 
 // 미들웨어
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// CORS 허용 (Go Live에서 테스트할 때 필요)
 app.use(cors());
 
-// 프론트 정적 파일 제공
+// 정적 파일 제공 (프론트)
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// 라우트 연결
+// 업로드 폴더 접근 허용
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// 라우트
 app.use('/auth', authRouter);
+app.use('/users', usersRouter);
 
 // 기본 라우트
 app.get('/', (req, res) => {
