@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>마이페이지</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(to right, #f8f9fa, #e9ecef);
+      min-height: 100vh;
+    }
+    .profile-card {
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+    .profile-header {
+      background: #0d6efd;
+      color: white;
+      padding: 2rem 1rem;
+      text-align: center;
+    }
+    .profile-img {
+      width: 130px;
+      height: 130px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 4px solid white;
+      margin-top: -65px;
+    }
+    .intro-text {
+      font-style: italic;
+      color: #6c757d;
+    }
+    .post-card {
+      border-radius: 0.75rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .post-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container py-5">
+    <!-- 프로필 카드 -->
+    <div class="card shadow profile-card mb-5">
+      <div class="profile-header">
+        <h2 class="fw-bold">Mypage</h2>
+      </div>
+      <div class="card-body text-center">
+        <img src="https://via.placeholder.com/130" alt="Profile Image" class="profile-img">
+        <h4 class="mt-3 fw-bold" id="username">hyunjoo</h4>
+        <p class="intro-text" id="intro">안녕하세요! 블로그에 오신 걸 환영합니다 😊</p>
+        <div class="d-flex justify-content-center gap-3 mt-3">
+          <button class="btn btn-outline-primary">내 프로필</button>
+          <button class="btn btn-outline-danger">로그아웃</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 내 게시물 -->
+    <h4 class="fw-bold mb-3">📌 내 게시물</h4>
+    <div class="row g-4">
+      <!-- 게시물 카드 1 -->
+      <div class="col-md-6">
+        <div class="card post-card shadow-sm h-100">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title fw-bold">첫 번째 게시물</h5>
+            <p class="card-text text-muted">이건 첫 번째 게시물 요약입니다. 간단하게 설명을 적을 수 있어요.</p>
+            <div class="mt-auto d-flex gap-2">
+              <button class="btn btn-sm btn-warning flex-fill">수정</button>
+              <button class="btn btn-sm btn-danger flex-fill">삭제</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 게시물 카드 2 -->
+      <div class="col-md-6">
+        <div class="card post-card shadow-sm h-100">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title fw-bold">두 번째 게시물</h5>
+            <p class="card-text text-muted">이건 두 번째 게시물 요약입니다. 여기서도 내용 일부를 보여줍니다.</p>
+            <div class="mt-auto d-flex gap-2">
+              <button class="btn btn-sm btn-warning flex-fill">수정</button>
+              <button class="btn btn-sm btn-danger flex-fill">삭제</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
