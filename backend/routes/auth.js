@@ -5,6 +5,15 @@ const pool = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+
+router.post('/logout', (req, res) => {
+  // JWT 블랙리스트 처리를 원하면 여기서 구현 가능
+  // 지금은 그냥 클라이언트에서 삭제하면 됨
+  return res.json({ message: '로그아웃 완료' });
+});
+
+module.exports = router;
+
 // 회원가입
 router.post('/signup', async (req, res) => {
   const { username, email, password } = req.body;

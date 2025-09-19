@@ -24,6 +24,8 @@ const profileRouter = require('./routes/profile');
 
 app.use('/auth', authRouter);
 app.use('/users', profileRouter);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // 서버 실행
 const PORT = process.env.PORT || 3000;
