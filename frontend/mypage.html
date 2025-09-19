@@ -96,7 +96,7 @@
       window.location.href = 'index.html';
     }
 
-    // ✅ 로그아웃 버튼 클릭 시 서버 API 호출 후 토큰 삭제
+    // 로그아웃
     logoutBtn.addEventListener('click', async () => {
       try {
         await fetch('http://localhost:3000/auth/logout', {
@@ -111,17 +111,20 @@
       }
     });
 
+    // 프로필 수정 토글
     editBtn.addEventListener('click', () => {
       form.style.display = form.style.display === 'none' ? 'block' : 'none';
       document.getElementById('username').value = usernameDisplay.textContent;
       document.getElementById('intro').value = introDisplay.textContent !== '소개글 없음' ? introDisplay.textContent.replace('소개글: ', '') : '';
     });
 
+    // 이미지 미리보기
     document.getElementById('profilePic').addEventListener('change', e => {
       const file = e.target.files[0];
       if (file) profilePreview.src = URL.createObjectURL(file);
     });
 
+    // 폼 제출
     form.addEventListener('submit', async e => {
       e.preventDefault();
 
@@ -146,7 +149,8 @@
         if (res.ok) {
           usernameDisplay.textContent = data.user.username;
           introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
-          if (data.user.profileImgUrl) profilePreview.src = `http://localhost:3000${data.user.profileImgUrl}`;
+          // ✅ 서버에서 profile_img 컬럼 사용
+          if (data.user.profile_img) profilePreview.src = `http://localhost:3000${data.user.profile_img}`;
           form.style.display = 'none';
         } else {
           alert(data.message);
@@ -157,6 +161,7 @@
       }
     });
 
+    // 페이지 로드 시 프로필 불러오기
     (async function fetchProfile() {
       try {
         const res = await fetch('http://localhost:3000/users/me', {
@@ -166,7 +171,9 @@
         if (res.ok) {
           usernameDisplay.textContent = data.user.username;
           introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
-          if (data.user.profileImgUrl) profilePreview.src = `http://localhost:3000${data.user.profileImgUrl}`;
+          profilePreview.src = data.user.profile_img
+            ? `http://localhost:3000${data.user.profile_img}`
+            : "https://via.placeholder.com/120";
         } else {
           alert(data.message);
           window.location.href = 'index.html';

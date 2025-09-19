@@ -16,9 +16,21 @@ const upload = multer({ storage });
 // 내 프로필 조회
 router.get('/me', authenticate, async (req, res) => {
   try {
-    const result = await pool.query('SELECT user_id, username, intro, profile_img FROM users WHERE user_id=$1', [req.user.userId]);
-    res.json({ user: result.rows[0] });
-  } catch {
+    const result = await pool.query(
+      'SELECT user_id, username, intro, profile_img FROM users WHERE user_id=$1',
+      [req.user.userId]
+    );
+
+    const user = result.rows[0];
+    if (user.profile_img) {
+      user.profileImgUrl = `http://localhost:3000${user.profile_img}`; // 절대 경로로 변경
+    } else {
+      user.profileImgUrl = null;
+    }
+
+    res.json({ user });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: '서버 오류' });
   }
 });
@@ -35,15 +47,17 @@ router.post('/update-profile', authenticate, upload.single('profilePic'), async 
       [username, intro, profileImgUrl, req.user.userId]
     );
 
+    const updatedUser = result.rows[0];
     res.json({
       message: '프로필 업데이트 성공',
       user: {
-        username: result.rows[0].username,
-        intro: result.rows[0].intro,
-        profileImgUrl: result.rows[0].profile_img
+        username: updatedUser.username,
+        intro: updatedUser.intro,
+        profileImgUrl: updatedUser.profile_img ? `http://localhost:3000${updatedUser.profile_img}` : null
       }
     });
-  } catch {
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: '서버 오류' });
   }
 });

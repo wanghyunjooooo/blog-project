@@ -13,9 +13,11 @@ const app = express();
 // 미들웨어
 app.use(cors());
 app.use(express.json()); // JSON body 파싱
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // 이미지 접근
 
-// frontend 정적 파일 제공 (Go Live 대신 브라우저에서 확인용)
+// 업로드 폴더를 static으로 제공 (프로필 이미지 접근용)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// frontend 정적 파일 제공
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // 라우터
@@ -24,8 +26,6 @@ const profileRouter = require('./routes/profile');
 
 app.use('/auth', authRouter);
 app.use('/users', profileRouter);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 
 // 서버 실행
 const PORT = process.env.PORT || 3000;
