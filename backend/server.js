@@ -23,12 +23,14 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // 라우터
 const authRouter = require('./routes/auth');
 const profileRouter = require('./routes/profile');
+const postsRouter = require('./routes/posts'); // 게시글 라우터
 
 app.use('/auth', authRouter);
 app.use('/users', profileRouter);
+app.use('/posts', postsRouter); // <- 여기 수정, 이제 Postman에서 /posts로 접근 가능
 
 // 서버 실행
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
 });

@@ -63,7 +63,7 @@
         if (res.ok) {
           localStorage.setItem('token', data.token);
           localStorage.setItem('username', data.user.username);
-          window.location.href = 'mypage.html';
+          window.location.href = 'main.html';
         } else {
           alert(data.message);
         }

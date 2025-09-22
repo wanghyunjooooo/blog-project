@@ -34,43 +34,78 @@
     </div>
   </header>
 
-  <!-- Blog Posts -->
-  <div class="container my-5">
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-      <div class="col">
-        <div class="card h-100">
-          <img src="https://via.placeholder.com/300x150" class="card-img-top" alt="Post Image">
-          <div class="card-body">
-            <h5 class="card-title">Blog Post 1</h5>
-            <p class="card-text">간단한 블로그 게시글 예시입니다.</p>
-            <a href="#" class="btn btn-primary">Read More</a>
-          </div>
+ <div class="container my-5">
+  <div class="row row-cols-1 row-cols-md-3 g-4" id="postList">
+    <div class="col">
+      <div class="card h-100">
+        <img src="https://via.placeholder.com/300x150" class="card-img-top" alt="Post Image">
+        <div class="card-body">
+          <h5 class="card-title">Blog Post 1</h5>
+          <p class="card-text">간단한 블로그 게시글 예시입니다.</p>
+          <a href="#" class="btn btn-primary">Read More</a>
         </div>
       </div>
-      <div class="col">
-        <div class="card h-100">
-          <img src="https://via.placeholder.com/300x150" class="card-img-top" alt="Post Image">
-          <div class="card-body">
-            <h5 class="card-title">Blog Post 2</h5>
-            <p class="card-text">Bootstrap을 활용한 카드 레이아웃 예시입니다.</p>
-            <a href="#" class="btn btn-primary">Read More</a>
-          </div>
+    </div>
+    <div class="col">
+      <div class="card h-100">
+        <img src="https://via.placeholder.com/300x150" class="card-img-top" alt="Post Image">
+        <div class="card-body">
+          <h5 class="card-title">Blog Post 2</h5>
+          <p class="card-text">Bootstrap을 활용한 카드 레이아웃 예시입니다.</p>
+          <a href="#" class="btn btn-primary">Read More</a>
         </div>
       </div>
-      <div class="col">
-        <div class="card h-100">
-          <img src="https://via.placeholder.com/300x150" class="card-img-top" alt="Post Image">
-          <div class="card-body">
-            <h5 class="card-title">Blog Post 3</h5>
-            <p class="card-text">반응형 그리드 레이아웃으로 자동 정렬됩니다.</p>
-            <a href="#" class="btn btn-primary">Read More</a>
-          </div>
+    </div>
+    <div class="col">
+      <div class="card h-100">
+        <img src="https://via.placeholder.com/300x150" class="card-img-top" alt="Post Image">
+        <div class="card-body">
+          <h5 class="card-title">Blog Post 3</h5>
+          <p class="card-text">반응형 그리드 레이아웃으로 자동 정렬됩니다.</p>
+          <a href="#" class="btn btn-primary">Read More</a>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+  async function fillPosts() {
+    try {
+      const res = await axios.get('http://localhost:3000/posts');
+      const posts = res.data;
+
+      const postCols = document.querySelectorAll('#postList .col');
+
+      posts.forEach((post, idx) => {
+        if (postCols[idx]) { // 기존 카드가 있으면 내용만 덮어쓰기
+          postCols[idx].querySelector('.card-img-top').src = post.image_url || 'https://via.placeholder.com/300x150';
+          postCols[idx].querySelector('.card-title').textContent = post.title;
+          postCols[idx].querySelector('.card-text').textContent = post.content;
+          postCols[idx].querySelector('.btn').href = `post.html?post_id=${post.post_id}`;
+        } else {
+          // 기존 카드보다 게시글이 많으면 새 카드 추가
+          const postList = document.getElementById('postList');
+          const div = document.createElement('div');
+          div.className = 'col';
+          div.innerHTML = `
+                    <div class="card h-100">
+                        <img src="${post.image_url || 'https://via.placeholder.com/300x150'}" class="card-img-top" alt="Post Image">
+                        <div class="card-body">
+                            <h5 class="card-title">${post.title}</h5>
+                            <p class="card-text">${post.content}</p>
+                            <a href="post.html?post_id=${post.post_id}" class="btn btn-primary">Read More</a>
+                        </div>
+                    </div>
+                `;
+          postList.appendChild(div);
+        }
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  fillPosts();
+</script>

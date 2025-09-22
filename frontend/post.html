@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Navbar (메인 페이지랑 동일) -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">MyBlog</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="main.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="post.html">Post</a></li>
+                    <li class="nav-item"><a class="nav-link" href="mypage.html">My</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="bg-light py-5 text-center">
+        <div class="container">
+            <h1 class="display-5">새 게시글 작성</h1>
+            <p class="lead">나의 생각과 이야기를 공유해보세요</p>
+        </div>
+    </header>
+
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-7">
+                <div class="card shadow-lg">
+                    <div class="card-body p-5">
+                        <form id="postForm" enctype="multipart/form-data">
+                            <!-- 제목 -->
+                            <div class="mb-4">
+                                <label for="title" class="form-label">제목</label>
+                                <input type="text" class="form-control form-control-lg" id="title" name="title"
+                                    placeholder="제목을 입력하세요" required>
+                            </div>
+
+                            <!-- 내용 -->
+                            <div class="mb-4">
+                                <label for="content" class="form-label">내용</label>
+                                <textarea class="form-control" id="content" name="content" rows="7"
+                                    placeholder="내용을 입력하세요" required></textarea>
+                            </div>
+
+                            <!-- 이미지 업로드 -->
+                            <div class="mb-4">
+                                <label for="image" class="form-label">이미지 업로드</label>
+                                <input class="form-control" type="file" id="image" name="image" accept="image/*">
+                                <small class="text-muted">PNG, JPG, GIF 형식 지원 (선택)</small>
+                            </div>
+
+                            <!-- 버튼 -->
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">✨ 게시글 등록하기</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS + Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const form = document.getElementById('postForm');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+
+            try {
+                const res = await axios.post('http://localhost:3000/posts', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+
+                alert('게시글이 성공적으로 등록되었습니다!');
+                window.location.href = 'main.html'; // 작성 후 메인 페이지로 이동
+            } catch (err) {
+                console.error(err);
+                alert('게시글 등록 실패');
+            }
+        });
+    </script>
+</body>
+
+</html>
