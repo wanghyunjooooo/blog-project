@@ -4,15 +4,7 @@ const router = express.Router();
 const pool = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-
-
-router.post('/logout', (req, res) => {
-  // JWT 블랙리스트 처리를 원하면 여기서 구현 가능
-  // 지금은 그냥 클라이언트에서 삭제하면 됨
-  return res.json({ message: '로그아웃 완료' });
-});
-
-module.exports = router;
+const authenticate = require('../middleware/authenticate');
 
 // 회원가입
 router.post('/signup', async (req, res) => {
@@ -26,7 +18,18 @@ router.post('/signup', async (req, res) => {
       [username, email, hashed]
     );
 
-    res.json({ message: '회원가입 성공', user: result.rows[0] });
+    // ✅ 여기서 바로 토큰 발급
+    const token = jwt.sign(
+      { userId: result.rows[0].user_id, username: result.rows[0].username },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({
+      message: '회원가입 성공',
+      user: result.rows[0],
+      token
+    });
   } catch (err) {
     if (err.code === '23505') return res.status(400).json({ message: '이미 존재하는 이메일 또는 닉네임' });
     res.status(500).json({ message: '서버 오류' });
@@ -57,4 +60,27 @@ router.post('/login', async (req, res) => {
   }
 });
 
-module.exports = router;
+// 로그아웃
+router.post('/logout', (req, res) => {
+  return res.json({ message: '로그아웃 완료' });
+});
+
+// 프로필 업데이트
+router.post('/update-profile', authenticate, async (req, res) => {
+  const { username, profile_img } = req.body;
+  const userId = req.user.userId;
+
+  try {
+    const result = await pool.query(
+      'UPDATE users SET username=$1, profile_img=$2 WHERE user_id=$3 RETURNING user_id, username, email, profile_img',
+      [username, profile_img, userId]
+    );
+
+    res.json({ message: '프로필 업데이트 성공', user: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: '서버 오류' });
+  }
+});
+
+module.exports = router; 
