@@ -66,8 +66,8 @@
         });
         const data = await res.json();
         if (res.ok) {
-          localStorage.setItem('token', data.token);
-          window.location.href = 'mypage.html';
+          alert('회원가입이 완료되었습니다. 로그인 해주세요!');
+          window.location.href = 'index.html';  // ✅ 회원가입 성공 후 로그인 페이지로 이동
         } else {
           alert(data.message);
         }
