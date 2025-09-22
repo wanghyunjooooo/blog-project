@@ -173,7 +173,7 @@
           introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
           profilePreview.src = data.user.profile_img
             ? `http://localhost:3000${data.user.profile_img}`
-            : "https://via.placeholder.com/120";
+            : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s";
         } else {
           alert(data.message);
           window.location.href = 'index.html';
