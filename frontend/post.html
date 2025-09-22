@@ -7,7 +7,6 @@
     <title>Post</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* 네이버 블로그 스타일처럼 심플하게 */
         #title {
             border: none;
             border-bottom: 1px solid #ddd;
@@ -58,22 +57,12 @@
     <!-- 글쓰기 영역 -->
     <div class="container my-5">
         <form id="postForm" enctype="multipart/form-data">
-            <!-- 제목 -->
             <input type="text" id="title" name="title" placeholder="제목" required>
-
-            <!-- 내용 -->
             <textarea id="content" name="content" placeholder="탐감과 함께 나의 일상을 기록해보세요!" required></textarea>
-
-            <!-- 이미지 업로드 -->
             <div class="mt-3">
                 <input class="form-control" type="file" id="image" name="image" accept="image/*">
                 <small class="text-muted">PNG, JPG, GIF 형식 지원 (선택)</small>
             </div>
-
-            <!-- user_id -->
-            <input type="hidden" id="user_id" name="user_id" value="1">
-
-            <!-- 버튼 영역 -->
             <div class="d-flex justify-content-end mt-4 gap-2">
                 <button type="button" class="btn btn-secondary btn-lg" id="previewBtn">👀 미리보기</button>
                 <button type="submit" class="btn btn-primary btn-lg">✨ 게시글 등록하기</button>
@@ -86,27 +75,33 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('로그인 후 작성 가능합니다.');
+            window.location.href = 'index.html';
+        }
+
         const form = document.getElementById('postForm');
         const previewBtn = document.getElementById('previewBtn');
 
-        // 미리보기 버튼 클릭
+        // 미리보기
         previewBtn.addEventListener('click', () => {
             const title = document.getElementById('title').value || '(제목 없음)';
             const content = document.getElementById('content').value || '(내용 없음)';
 
             const previewWindow = window.open('', '미리보기', 'width=800,height=600');
             previewWindow.document.write(`
-        <html>
-        <head>
-          <title>미리보기</title>
-          <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-        </head>
-        <body class="p-5">
-          <h1>${title}</h1>
-          <p style="white-space: pre-line; font-size: 1.1rem;">${content}</p>
-        </body>
-        </html>
-      `);
+                <html>
+                <head>
+                  <title>미리보기</title>
+                  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+                </head>
+                <body class="p-5">
+                  <h1>${title}</h1>
+                  <p style="white-space: pre-line; font-size: 1.1rem;">${content}</p>
+                </body>
+                </html>
+            `);
             previewWindow.document.close();
         });
 
@@ -117,10 +112,13 @@
 
             try {
                 const res = await axios.post('http://localhost:3000/posts', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Authorization': `Bearer ${token}` // ✅ 로그인한 사용자 토큰
+                    }
                 });
 
-                alert(`게시글이 성공적으로 등록되었습니다! ${res.data.author_name || '알 수 없음'}`);
+                alert(`게시글이 성공적으로 등록되었습니다! 작성자: ${res.data.author_name}`);
                 window.location.href = 'main.html';
             } catch (err) {
                 console.error(err);
