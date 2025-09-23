@@ -88,7 +88,7 @@
     <script>
         const params = new URLSearchParams(window.location.search);
         const postId = params.get('post_id');
-        const userId = 1; // 임시 하드코딩
+        const userId = 1;
 
         async function loadPost() {
             try {
@@ -105,23 +105,38 @@
                 }
                 loadLikes();
                 loadComments();
-            } catch (err) {
-                console.error(err);
-                alert('게시글 불러오기 실패');
-            }
+            } catch (err) { console.error(err); alert('게시글 불러오기 실패'); }
         }
 
         async function loadLikes() {
             try {
                 const res = await axios.get(`http://localhost:3000/posts/${postId}/likes`);
-                document.getElementById('likeCount').textContent = res.data.count;
+                const likeCount = res.data.count || 0;
+                document.getElementById('likeCount').textContent = likeCount;
+                const btn = document.getElementById('likeButton');
+                if (res.data.is_liked) btn.classList.add('liked'); else btn.classList.remove('liked');
             } catch (err) { console.error(err); }
         }
 
-        document.getElementById('likeButton').addEventListener('click', async () => {
+        document.getElementById('likeButton').addEventListener('click', async function () {
+            const btn = this;
+            const countEl = document.getElementById('likeCount');
+            let count = parseInt(countEl.textContent);
+            const isLiked = btn.classList.contains('liked');
+
             try {
-                await axios.post(`http://localhost:3000/posts/${postId}/likes`, { user_id: userId });
-                loadLikes();
+                if (!isLiked) {
+                    await axios.post(`http://localhost:3000/posts/${postId}/likes`, { user_id: userId });
+                    count++;
+                    btn.classList.add('liked');
+                    btn.style.color = '#e63946';
+                } else {
+                    await axios.delete(`http://localhost:3000/posts/${postId}/likes`, { data: { user_id: userId } });
+                    count--;
+                    btn.classList.remove('liked');
+                    btn.style.color = '#000';
+                }
+                countEl.textContent = count;
             } catch (err) { console.error(err); alert('좋아요 처리 실패'); }
         });
 
