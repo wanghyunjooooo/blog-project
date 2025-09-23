@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const path = require('path');
 
+
 // 환경변수 로드
 dotenv.config();
 
@@ -24,6 +25,12 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 const authRouter = require('./routes/auth');
 const profileRouter = require('./routes/profile');
 const postsRouter = require('./routes/posts'); // 게시글 라우터
+const commentsRouter = require('./routes/comments');
+const likesRouter = require('./routes/likes');
+
+app.use('/comments', commentsRouter);
+app.use('/likes', likesRouter);
+
 
 app.use('/auth', authRouter);
 app.use('/users', profileRouter);
