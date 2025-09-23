@@ -1,17 +1,17 @@
-// routes/comments.js
 const express = require('express');
-const router = express.Router();
-const pool = require('../db'); // DB 연결 모듈
+const router = express.Router({ mergeParams: true });
+const pool = require('../db');
 
-// 댓글 작성 API
-// POST /comments
+// POST /posts/:postId/comments
 router.post('/', async (req, res) => {
-  const { post_id, user_id, content } = req.body;
+  const { postId } = req.params;
+  const { user_id, content } = req.body;
+
   try {
     const result = await pool.query(
       `INSERT INTO Comments (post_id, user_id, content)
        VALUES ($1, $2, $3) RETURNING *`,
-      [post_id, user_id, content]
+      [postId, user_id, content]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -20,16 +20,22 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 댓글 삭제 API
-// DELETE /comments/:id
-router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
+// GET /posts/:postId/comments
+router.get('/', async (req, res) => {
+  const { postId } = req.params;
   try {
-    await pool.query(`DELETE FROM Comments WHERE comment_id = $1`, [id]);
-    res.json({ message: '댓글 삭제 완료' });
+    const result = await pool.query(
+      `SELECT c.*, u.username AS author_name
+       FROM Comments c
+       LEFT JOIN Users u ON c.user_id = u.user_id
+       WHERE c.post_id = $1
+       ORDER BY c.created_at ASC`,
+      [postId]
+    );
+    res.json(result.rows);
   } catch (err) {
-    console.error('댓글 삭제 오류:', err);
-    res.status(500).json({ error: '댓글 삭제 실패' });
+    console.error('댓글 불러오기 오류:', err);
+    res.status(500).json({ error: '댓글 불러오기 실패' });
   }
 });
 

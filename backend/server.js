@@ -25,11 +25,11 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 const authRouter = require('./routes/auth');
 const profileRouter = require('./routes/profile');
 const postsRouter = require('./routes/posts'); // 게시글 라우터
-const commentsRouter = require('./routes/comments');
-const likesRouter = require('./routes/likes');
-
-app.use('/comments', commentsRouter);
-app.use('/likes', likesRouter);
+// 라우트 연결
+const commentRouter = require('./routes/comments');
+const likeRouter = require('./routes/likes');
+app.use('/posts/:postId/comments', commentRouter);
+app.use('/posts/:postId/likes', likeRouter);
 
 
 app.use('/auth', authRouter);

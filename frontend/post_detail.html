@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background-color: #f9f9f9;
+            background: #f9f9f9;
         }
 
         .post-container {
@@ -35,78 +35,118 @@
             max-width: 100%;
             border-radius: 5px;
             margin: 20px 0;
+            display: none;
         }
 
         #postContent {
             font-size: 1.1rem;
             line-height: 1.8;
             white-space: pre-line;
-            /* 줄바꿈 반영 */
+        }
+
+        .comment-box {
+            margin-top: 40px;
+        }
+
+        .comment {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .like-btn {
+            margin-top: 20px;
         }
     </style>
 </head>
 
 <body>
-
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="main.html">MyBlog</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-        </div>
+        <div class="container"><a class="navbar-brand" href="main.html">MyBlog</a></div>
     </nav>
 
-    <!-- 게시글 상세 -->
     <div class="post-container">
-        <!-- 제목 -->
         <h1 id="postTitle">게시글 제목</h1>
-
-        <!-- 작성자 & 날짜 -->
         <div id="postMeta">작성자: <span id="postAuthor">알 수 없음</span> | <span id="postDate"></span></div>
-
-        <!-- 이미지 -->
-        <img id="postImage" src="" alt="Post Image" style="display: none;">
-
-        <!-- 본문 -->
+        <img id="postImage" src="">
         <div id="postContent">게시글 내용</div>
 
-        <div class="mt-5 text-end">
-            <a href="main.html" class="btn btn-outline-secondary">← 목록으로</a>
+        <div class="like-btn">
+            <button id="likeButton" class="btn btn-outline-primary">❤️ 좋아요 (<span id="likeCount">0</span>)</button>
         </div>
+
+        <div class="comment-box">
+            <h4>댓글</h4>
+            <div id="commentsList"></div>
+            <textarea id="commentInput" class="form-control" placeholder="댓글을 입력하세요"></textarea>
+            <button class="btn btn-primary mt-2" onclick="addComment()">댓글 달기</button>
+        </div>
+
+        <div class="mt-5 text-end"><a href="main.html" class="btn btn-outline-secondary">← 목록으로</a></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         const params = new URLSearchParams(window.location.search);
         const postId = params.get('post_id');
+        const userId = 1; // 임시 하드코딩
 
         async function loadPost() {
             try {
                 const res = await axios.get(`http://localhost:3000/posts/${postId}`);
                 const post = res.data;
-
                 document.getElementById('postTitle').textContent = post.title;
                 document.getElementById('postContent').textContent = post.content;
                 document.getElementById('postAuthor').textContent = post.author_name || '알 수 없음';
-
-                // 날짜 있으면 YYYY-MM-DD 표시
-                if (post.created_at) {
-                    const date = new Date(post.created_at);
-                    document.getElementById('postDate').textContent = date.toLocaleDateString();
-                }
-
-                // 이미지 있으면 표시
+                if (post.created_at) document.getElementById('postDate').textContent = new Date(post.created_at).toLocaleDateString();
                 if (post.image_url) {
                     const img = document.getElementById('postImage');
                     img.src = post.image_url;
                     img.style.display = "block";
                 }
+                loadLikes();
+                loadComments();
             } catch (err) {
                 console.error(err);
-                alert('게시글을 불러오는데 실패했습니다.');
+                alert('게시글 불러오기 실패');
             }
+        }
+
+        async function loadLikes() {
+            try {
+                const res = await axios.get(`http://localhost:3000/posts/${postId}/likes`);
+                document.getElementById('likeCount').textContent = res.data.count;
+            } catch (err) { console.error(err); }
+        }
+
+        document.getElementById('likeButton').addEventListener('click', async () => {
+            try {
+                await axios.post(`http://localhost:3000/posts/${postId}/likes`, { user_id: userId });
+                loadLikes();
+            } catch (err) { console.error(err); alert('좋아요 처리 실패'); }
+        });
+
+        async function loadComments() {
+            try {
+                const res = await axios.get(`http://localhost:3000/posts/${postId}/comments`);
+                const list = document.getElementById('commentsList');
+                list.innerHTML = "";
+                res.data.forEach(c => {
+                    const div = document.createElement('div');
+                    div.classList.add('comment');
+                    div.textContent = `${c.author_name || '익명'}: ${c.content}`;
+                    list.appendChild(div);
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        async function addComment() {
+            const content = document.getElementById('commentInput').value.trim();
+            if (!content) return alert("댓글을 입력하세요!");
+            try {
+                await axios.post(`http://localhost:3000/posts/${postId}/comments`, { user_id: userId, content });
+                document.getElementById('commentInput').value = "";
+                loadComments();
+            } catch (err) { console.error(err); alert("댓글 작성 실패"); }
         }
 
         loadPost();

@@ -64,6 +64,18 @@
       border-radius: 5px;
     }
 
+    .like-btn {
+      border: none;
+      background: none;
+      color: #e63946;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
     @media(max-width: 768px) {
       .post-item {
         flex-direction: column;
@@ -109,8 +121,8 @@
   <!-- 검색창 -->
   <div class="search-bar">
     <div class="input-group">
-      <input type="text" class="form-control" placeholder="검색어를 입력하세요">
-      <button class="btn btn-outline-secondary" type="button">
+      <input type="text" id="searchInput" class="form-control" placeholder="검색어를 입력하세요">
+      <button class="btn btn-outline-secondary" type="button" onclick="searchPosts()">
         <i class="fas fa-search"></i>
       </button>
     </div>
@@ -122,9 +134,15 @@
 
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script>
-    async function loadPosts() {
+    const userId = 1; // 로그인된 사용자 ID (예시)
+
+    async function loadPosts(query = '') {
       try {
-        const res = await axios.get('http://localhost:3000/posts');
+        const url = query
+          ? `http://localhost:3000/posts/search?keyword=${encodeURIComponent(query)}`
+          : `http://localhost:3000/posts`;
+
+        const res = await axios.get(url);
         const posts = res.data;
         const postList = document.getElementById('postList');
         postList.innerHTML = '';
@@ -137,16 +155,24 @@
         posts.forEach(post => {
           const div = document.createElement('div');
           div.className = 'post-item';
-          div.onclick = () => { window.location.href = `post_detail.html?post_id=${post.post_id}`; }
+
+          // 클릭 시 상세 페이지 이동
+          div.onclick = () => {
+            window.location.href = `post_detail.html?post_id=${post.post_id}`;
+          };
 
           div.innerHTML = `
             <div class="post-left">
               <div class="post-author">
-                <img src="${post.author_profile || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'}" alt="Author" class="author-img">
+                <img src="${post.author_profile || 'https://via.placeholder.com/28'}" alt="Author" class="author-img">
                 <span>${post.author_name || '알 수 없음'} · ${new Date(post.created_at).toLocaleDateString()}</span>
               </div>
               <div class="post-title">${post.title}</div>
               <div class="post-summary">${post.content}</div>
+              <button class="like-btn" onclick="toggleLike(event, ${post.post_id})">
+                <i class="fas fa-heart"></i>
+                <span id="like-count-${post.post_id}">${post.like_count || 0}</span>
+              </button>
             </div>
             <div class="post-right">
               <img src="${post.image_url || 'https://via.placeholder.com/120'}" alt="Post Image">
@@ -159,6 +185,30 @@
         console.error(err);
         document.getElementById('postList').innerHTML = '<p class="text-center text-danger">게시글 불러오기 실패</p>';
       }
+    }
+
+    async function toggleLike(event, postId) {
+      event.stopPropagation(); // 게시물 클릭 이벤트 막기
+      const likeCountEl = document.getElementById(`like-count-${postId}`);
+      let currentCount = parseInt(likeCountEl.innerText);
+
+      try {
+        const res = await axios.post('http://localhost:3000/likes', { post_id: postId, user_id: userId });
+
+        if (res.data.like_id) {
+          likeCountEl.innerText = currentCount + 1;
+        } else {
+          await axios.delete('http://localhost:3000/likes', { data: { post_id: postId, user_id: userId } });
+          likeCountEl.innerText = currentCount - 1;
+        }
+      } catch (err) {
+        console.error('좋아요 처리 실패:', err);
+      }
+    }
+
+    function searchPosts() {
+      const keyword = document.getElementById('searchInput').value.trim();
+      loadPosts(keyword);
     }
 
     loadPosts();
