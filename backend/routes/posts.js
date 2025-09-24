@@ -16,28 +16,30 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ====================
-// helper: userId 안전하게 파싱
+// helper: 로그인 유저 ID 추출
 // ====================
 function getUserId(req) {
   if (req.user && req.user.userId) return parseInt(req.user.userId, 10);
-  if (req.query.user_id !== undefined) {
-    const n = parseInt(req.query.user_id, 10);
-    return Number.isNaN(n) ? null : n;
-  }
-  return null;
+  return null; // 로그인 안 되어 있으면 null
 }
 
 // ====================
 // 게시글 전체 조회 (좋아요 반영)
 // ====================
-router.get('/', async (req, res) => {
-  const userId = getUserId(req) || 0; // 로그인 안 되어도 전체 게시물 조회 가능
+router.get('/', authenticate, async (req, res) => {
+  const userId = getUserId(req);
 
   try {
     const result = await pool.query(
       `
       SELECT
-        p.*,
+        p.post_id,
+        p.user_id,
+        p.title,
+        p.content,
+        p.image_url,
+        p.created_at,
+        p.updated_at,
         u.username AS author_name,
         u.profile_img AS author_profile,
         COALESCE(likes_count.count, 0) AS like_count,
@@ -122,15 +124,21 @@ router.post('/', authenticate, upload.single('image'), async (req, res) => {
 // ====================
 // 특정 게시글 조회 (좋아요 반영)
 // ====================
-router.get('/:post_id', async (req, res) => {
+router.get('/:post_id', authenticate, async (req, res) => {
   const { post_id } = req.params;
-  const userId = getUserId(req) || 0;
+  const userId = getUserId(req);
 
   try {
     const result = await pool.query(
       `
       SELECT
-        p.*,
+        p.post_id,
+        p.user_id,
+        p.title,
+        p.content,
+        p.image_url,
+        p.created_at,
+        p.updated_at,
         u.username AS author_name,
         u.profile_img AS author_profile,
         COALESCE(likes_count.count, 0) AS like_count,
