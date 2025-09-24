@@ -20,14 +20,14 @@ const upload = multer({ storage });
 // ====================
 function getUserId(req) {
   if (req.user && req.user.userId) return parseInt(req.user.userId, 10);
-  return null; // 로그인 안 되어 있으면 null
+  return null;
 }
 
 // ====================
-// 게시글 전체 조회 (좋아요 반영)
+// 게시글 전체 조회 (메인페이지)
 // ====================
-router.get('/', authenticate, async (req, res) => {
-  const userId = getUserId(req);
+router.get('/', async (req, res) => {
+  const userId = getUserId(req) || 0;
 
   try {
     const result = await pool.query(
@@ -41,8 +41,12 @@ router.get('/', authenticate, async (req, res) => {
         p.created_at,
         p.updated_at,
         u.username AS author_name,
-        u.profile_img AS author_profile,
-        COALESCE(likes_count.count, 0) AS like_count,
+        CASE 
+          WHEN u.profile_img IS NOT NULL 
+          THEN '/uploads/' || u.profile_img
+          ELSE 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
+        END AS author_profile,
+        COALESCE(lc.count, 0) AS like_count,
         CASE WHEN ul.user_id IS NOT NULL THEN true ELSE false END AS is_liked
       FROM posts p
       LEFT JOIN users u ON p.user_id = u.user_id
@@ -50,7 +54,7 @@ router.get('/', authenticate, async (req, res) => {
         SELECT post_id, COUNT(*) AS count
         FROM likes
         GROUP BY post_id
-      ) AS likes_count ON likes_count.post_id = p.post_id
+      ) AS lc ON lc.post_id = p.post_id
       LEFT JOIN likes ul ON ul.post_id = p.post_id AND ul.user_id = $1
       ORDER BY p.created_at DESC
       `,
@@ -69,10 +73,18 @@ router.get('/', authenticate, async (req, res) => {
 // ====================
 router.get('/my-posts', authenticate, async (req, res) => {
   const userId = req.user.userId;
+
   try {
     const result = await pool.query(
       `
-      SELECT p.*, u.username AS author_name, u.profile_img AS author_profile
+      SELECT
+        p.*,
+        u.username AS author_name,
+        CASE 
+          WHEN u.profile_img IS NOT NULL 
+          THEN '/uploads/' || u.profile_img
+          ELSE 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
+        END AS author_profile
       FROM posts p
       LEFT JOIN users u ON p.user_id = u.user_id
       WHERE p.user_id=$1
@@ -94,7 +106,7 @@ router.get('/my-posts', authenticate, async (req, res) => {
 router.post('/', authenticate, upload.single('image'), async (req, res) => {
   const { title, content } = req.body;
   const userId = req.user.userId;
-  const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+  const image_url = req.file ? req.file.filename : null;
 
   try {
     const insertResult = await pool.query(
@@ -106,7 +118,14 @@ router.post('/', authenticate, upload.single('image'), async (req, res) => {
 
     const postWithAuthor = await pool.query(
       `
-      SELECT p.*, u.username AS author_name, u.profile_img AS author_profile
+      SELECT
+        p.*,
+        u.username AS author_name,
+        CASE 
+          WHEN u.profile_img IS NOT NULL 
+          THEN '/uploads/' || u.profile_img
+          ELSE 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
+        END AS author_profile
       FROM posts p
       LEFT JOIN users u ON p.user_id = u.user_id
       WHERE p.post_id=$1
@@ -122,14 +141,15 @@ router.post('/', authenticate, upload.single('image'), async (req, res) => {
 });
 
 // ====================
-// 특정 게시글 조회 (좋아요 반영)
+// 특정 게시글 조회 (좋아요 + 댓글 포함)
 // ====================
-router.get('/:post_id', authenticate, async (req, res) => {
+router.get('/:post_id', async (req, res) => {
   const { post_id } = req.params;
-  const userId = getUserId(req);
+  const userId = getUserId(req) || 0;
 
   try {
-    const result = await pool.query(
+    // 게시글
+    const postResult = await pool.query(
       `
       SELECT
         p.post_id,
@@ -140,8 +160,12 @@ router.get('/:post_id', authenticate, async (req, res) => {
         p.created_at,
         p.updated_at,
         u.username AS author_name,
-        u.profile_img AS author_profile,
-        COALESCE(likes_count.count, 0) AS like_count,
+        CASE 
+          WHEN u.profile_img IS NOT NULL 
+          THEN '/uploads/' || u.profile_img
+          ELSE 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
+        END AS author_profile,
+        COALESCE(lc.count, 0) AS like_count,
         CASE WHEN ul.user_id IS NOT NULL THEN true ELSE false END AS is_liked
       FROM posts p
       LEFT JOIN users u ON p.user_id = u.user_id
@@ -149,15 +173,41 @@ router.get('/:post_id', authenticate, async (req, res) => {
         SELECT post_id, COUNT(*) AS count
         FROM likes
         GROUP BY post_id
-      ) AS likes_count ON likes_count.post_id = p.post_id
+      ) AS lc ON lc.post_id = p.post_id
       LEFT JOIN likes ul ON ul.post_id = p.post_id AND ul.user_id = $2
       WHERE p.post_id = $1
       `,
       [post_id, userId]
     );
 
-    if (result.rows.length === 0) return res.status(404).json({ message: '게시글 없음' });
-    res.json(result.rows[0]);
+    if (postResult.rows.length === 0) return res.status(404).json({ message: '게시글 없음' });
+
+    const post = postResult.rows[0];
+
+    // 댓글
+    const commentsResult = await pool.query(
+      `
+      SELECT 
+        c.comment_id,
+        c.content,
+        c.created_at,
+        u.username AS author_name,
+        CASE 
+          WHEN u.profile_img IS NOT NULL 
+          THEN '/uploads/' || u.profile_img
+          ELSE 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
+        END AS author_profile
+      FROM comments c
+      LEFT JOIN users u ON c.user_id = u.user_id
+      WHERE c.post_id = $1
+      ORDER BY c.created_at ASC
+      `,
+      [post_id]
+    );
+
+    post.comments = commentsResult.rows;
+
+    res.json(post);
   } catch (err) {
     console.error('특정 게시글 조회 실패:', err);
     res.status(500).json({ message: '서버 오류' });
@@ -171,7 +221,7 @@ router.put('/:post_id', authenticate, upload.single('image'), async (req, res) =
   const { post_id } = req.params;
   const { title, content } = req.body;
   const userId = req.user.userId;
-  const image_url = req.file ? `/uploads/${req.file.filename}` : null;
+  const image_url = req.file ? req.file.filename : null;
 
   try {
     const check = await pool.query('SELECT * FROM posts WHERE post_id=$1 AND user_id=$2', [post_id, userId]);
@@ -184,7 +234,14 @@ router.put('/:post_id', authenticate, upload.single('image'), async (req, res) =
 
     const updated = await pool.query(
       `
-      SELECT p.*, u.username AS author_name, u.profile_img AS author_profile
+      SELECT
+        p.*,
+        u.username AS author_name,
+        CASE 
+          WHEN u.profile_img IS NOT NULL 
+          THEN '/uploads/' || u.profile_img
+          ELSE 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
+        END AS author_profile
       FROM posts p
       LEFT JOIN users u ON p.user_id = u.user_id
       WHERE p.post_id=$1

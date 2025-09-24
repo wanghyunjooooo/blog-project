@@ -61,8 +61,10 @@
   <div class="container my-5">
     <div class="card p-4 shadow-sm">
       <div class="text-center mb-4">
-        <img id="profilePreview" src="https://i.namu.wiki/i/Bge3xnYd4kRe_IKbm2uqxlhQJij2SngwNssjpjaOyOqoRhQlNwLrR2ZiK-JWJ2b99RGcSxDaZ2UCI7fiv4IDDQ.webp" class="profile-img mb-3" alt="프로필 사진">
-        <h4 id="usernameDisplay">hyunjoo</h4>
+        <img id="profilePreview"
+          src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s"
+          class="profile-img mb-3" alt="프로필 사진">
+        <h4 id="usernameDisplay">사용자</h4>
         <p id="introDisplay" class="text-muted">소개글 없음</p>
         <div class="d-flex justify-content-center gap-2">
           <button id="editBtn" class="btn btn-outline-primary btn-sm">프로필 수정</button>
@@ -106,20 +108,32 @@
     const myPostsList = document.getElementById('myPostsList');
     const token = localStorage.getItem('token');
 
-    if (!token) { alert('로그인 후 접근 가능합니다.'); window.location.href = 'index.html'; }
+    if (!token) {
+      alert('로그인 후 접근 가능합니다.');
+      window.location.href = 'index.html';
+    }
 
     // 로그아웃
     logoutBtn.addEventListener('click', async () => {
-      try { await fetch('http://localhost:3000/auth/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } }); }
-      catch (e) { console.error(e); }
-      finally { localStorage.removeItem('token'); window.location.href = 'index.html'; }
+      try {
+        await fetch('http://localhost:3000/auth/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } catch (e) { console.error(e); }
+      finally {
+        localStorage.removeItem('token');
+        window.location.href = 'index.html';
+      }
     });
 
     // 프로필 수정 토글
     editBtn.addEventListener('click', () => {
       form.style.display = form.style.display === 'none' ? 'block' : 'none';
       document.getElementById('username').value = usernameDisplay.textContent;
-      document.getElementById('intro').value = introDisplay.textContent !== '소개글 없음' ? introDisplay.textContent.replace('소개글: ', '') : '';
+      document.getElementById('intro').value = introDisplay.textContent !== '소개글 없음'
+        ? introDisplay.textContent.replace('소개글: ', '')
+        : '';
     });
 
     document.getElementById('profilePic').addEventListener('change', e => {
@@ -127,6 +141,7 @@
       if (file) profilePreview.src = URL.createObjectURL(file);
     });
 
+    // 프로필 수정 저장
     form.addEventListener('submit', async e => {
       e.preventDefault();
       const username = document.getElementById('username').value.trim();
@@ -147,11 +162,23 @@
         if (res.ok) {
           usernameDisplay.textContent = data.user.username;
           introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
-          if (data.user.profile_img) profilePreview.src = `http://localhost:3000${data.user.profile_img}`;
+          profilePreview.src = data.user.profile_img
+            ? resolveImageUrl(data.user.profile_img)
+            : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s";
           form.style.display = 'none';
         } else alert(data.message);
-      } catch (err) { console.error(err); alert('서버 오류 발생'); }
+      } catch (err) {
+        console.error(err);
+        alert('서버 오류 발생');
+      }
     });
+
+    // uploads 경로를 자동 붙이는 함수
+    function resolveImageUrl(path) {
+      if (!path) return null;
+      if (path.startsWith('http://') || path.startsWith('https://')) return path;
+      return path.startsWith('/') ? `http://localhost:3000/uploads${path}` : `http://localhost:3000/uploads/${path}`;
+    }
 
     // 내 글 불러오기
     async function loadMyPosts() {
@@ -159,16 +186,25 @@
         const res = await fetch('http://localhost:3000/posts/my-posts', { headers: { 'Authorization': `Bearer ${token}` } });
         const posts = await res.json();
         if (!res.ok) throw new Error(posts.message || '서버 오류');
-        if (posts.length === 0) { myPostsList.innerHTML = '<p>작성한 글이 없습니다.</p>'; return; }
+
+        if (posts.length === 0) {
+          myPostsList.innerHTML = '<p>작성한 글이 없습니다.</p>';
+          return;
+        }
 
         myPostsList.innerHTML = '';
         posts.forEach(post => {
           const div = document.createElement('div');
           div.className = 'card p-3 mb-3';
+          let imgHTML = '';
+          if (post.image_url) {
+            const imgUrl = resolveImageUrl(post.image_url);
+            if (imgUrl) imgHTML = `<img src="${imgUrl}" class="post-img">`;
+          }
           div.innerHTML = `
             <h5>${post.title}</h5>
             <p>${post.content}</p>
-            ${post.image_url ? `<img src="http://localhost:3000${post.image_url}" class="post-img">` : ''}
+            ${imgHTML}
             <div class="d-flex gap-2">
               <button class="btn btn-sm btn-primary editBtn" data-id="${post.post_id}">수정</button>
               <button class="btn btn-sm btn-danger deleteBtn" data-id="${post.post_id}">삭제</button>
@@ -185,17 +221,27 @@
           div.querySelector('.deleteBtn').addEventListener('click', async () => {
             if (!confirm('정말 삭제하시겠습니까?')) return;
             try {
-              const resDel = await fetch(`http://localhost:3000/posts/${post.post_id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+              const resDel = await fetch(`http://localhost:3000/posts/${post.post_id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
               const dataDel = await resDel.json();
               if (!resDel.ok) throw new Error(dataDel.message || '삭제 실패');
               alert('삭제 성공');
               loadMyPosts();
-            } catch (err) { console.error(err); alert(err.message); }
+            } catch (err) {
+              console.error(err);
+              alert(err.message);
+            }
           });
         });
-      } catch (err) { console.error(err); myPostsList.innerHTML = '<p class="text-danger">내 글 불러오기 실패</p>'; }
+      } catch (err) {
+        console.error(err);
+        myPostsList.innerHTML = '<p class="text-danger">내 글 불러오기 실패</p>';
+      }
     }
 
+    // 초기 실행
     (async function init() {
       try {
         const res = await fetch('http://localhost:3000/users/me', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -203,9 +249,15 @@
         if (res.ok) {
           usernameDisplay.textContent = data.user.username;
           introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
-          profilePreview.src = data.user.profile_img ? `http://localhost:3000${data.user.profile_img}` : "https://via.placeholder.com/120";
-        } else { alert(data.message); window.location.href = 'index.html'; }
-      } catch (err) { console.error(err); alert('서버 오류 발생'); }
+          profilePreview.src = data.user.profile_img ? resolveImageUrl(data.user.profile_img) : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s";
+        } else {
+          alert(data.message);
+          window.location.href = 'index.html';
+        }
+      } catch (err) {
+        console.error(err);
+        alert('서버 오류 발생');
+      }
 
       loadMyPosts();
     })();

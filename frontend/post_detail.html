@@ -143,7 +143,7 @@
             <h4>댓글</h4>
             <div id="commentsList"></div>
             <div class="comment-input-wrapper">
-                <img id="myProfilePic" src="https://via.placeholder.com/40" alt="프로필" />
+                <img id="myProfilePic" src="" alt="프로필" />
                 <textarea id="commentInput" class="form-control" placeholder="댓글을 입력하세요"></textarea>
             </div>
             <button class="btn btn-primary mt-2" id="commentBtn">댓글 달기</button>
@@ -174,6 +174,19 @@
 
             let userId;
 
+            // 이미지 경로 처리
+            function getFullImagePath(filename, type = 'profile') {
+                if (!filename) {
+                    return type === 'profile'
+                        ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
+                        : '/uploads/default_post.png';
+                }
+                if (filename.startsWith('http://') || filename.startsWith('https://')) {
+                    return filename;
+                }
+                return `http://localhost:3000${filename.startsWith('/') ? '' : '/uploads/'}${filename}`;
+            }
+
             // 로그인 유저 정보 가져오기
             async function loadUserInfo() {
                 try {
@@ -182,7 +195,7 @@
                     });
                     const user = res.data.user;
                     userId = user.user_id;
-                    myProfilePic.src = user.profile_img ? `http://localhost:3000${user.profile_img}` : 'https://via.placeholder.com/40';
+                    myProfilePic.src = getFullImagePath(user.profile_img, 'profile');
                 } catch (err) {
                     console.error(err);
                     alert('유저 정보 불러오기 실패');
@@ -207,7 +220,7 @@
 
                     if (post.image_url) {
                         const img = document.getElementById('postImage');
-                        img.src = post.image_url.startsWith('http') ? post.image_url : `http://localhost:3000${post.image_url}`;
+                        img.src = getFullImagePath(post.image_url, 'post');
                         img.style.display = 'block';
                     }
 
@@ -261,7 +274,7 @@
                         div.classList.add('comment');
 
                         const img = document.createElement('img');
-                        img.src = c.profile_img ? `http://localhost:3000${c.profile_img}` : 'https://via.placeholder.com/40';
+                        img.src = getFullImagePath(c.profile_img, 'profile');
                         div.appendChild(img);
 
                         const body = document.createElement('div');

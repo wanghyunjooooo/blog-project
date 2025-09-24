@@ -124,7 +124,24 @@
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script>
     const token = localStorage.getItem("token");
-    if (!token) { alert("로그인이 필요합니다."); window.location.href = "login.html"; }
+    if (!token) {
+      alert("로그인이 필요합니다.");
+      window.location.href = "login.html";
+    }
+
+    function getFullImagePath(filename, type = 'profile') {
+      if (!filename) {
+        return type === 'profile'
+          ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
+          : null; // 게시글 이미지 없으면 null
+      }
+
+      if (filename.startsWith('http://') || filename.startsWith('https://')) {
+        return filename;
+      }
+
+      return '/uploads/' + filename;
+    }
 
     async function loadPosts(query = '') {
       try {
@@ -137,14 +154,17 @@
         const postList = document.getElementById('postList');
         postList.innerHTML = '';
 
-        if (!posts.length) { postList.innerHTML = '<p class="text-center lead">최근 게시물이 없습니다.</p>'; return; }
+        if (!posts.length) {
+          postList.innerHTML = '<p class="text-center lead">최근 게시물이 없습니다.</p>';
+          return;
+        }
 
         posts.forEach(post => {
           const div = document.createElement('div');
           div.className = 'post-item';
 
-          const authorImg = post.author_profile || 'uploads/default_profile.png';
-          const postImg = post.image_url || 'uploads/default_post.png';
+          const authorImg = getFullImagePath(post.author_profile, 'profile');
+          const postImg = getFullImagePath(post.image_url, 'post');
           const liked = post.is_liked ? 'liked' : '';
 
           div.innerHTML = `
@@ -160,9 +180,7 @@
                 <span>${post.like_count || 0}</span>
               </button>
             </div>
-            <div class="post-right">
-              <img src="${postImg}" alt="Post Image">
-            </div>
+            ${postImg ? `<div class="post-right"><img src="${postImg}" alt="Post Image"></div>` : ''}
           `;
 
           div.addEventListener('click', (e) => {
@@ -188,7 +206,6 @@
           ? await axios.post(`http://localhost:3000/posts/${postId}/likes`, {}, { headers: { Authorization: `Bearer ${token}` } })
           : await axios.delete(`http://localhost:3000/posts/${postId}/likes`, { headers: { Authorization: `Bearer ${token}` } });
 
-        // 서버에서 받은 최신 상태 반영
         const { like_count, is_liked } = res.data;
         btn.classList.toggle('liked', is_liked);
         heart.style.color = is_liked ? '#e63946' : '#555';
