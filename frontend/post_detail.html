@@ -56,29 +56,40 @@
         .like-btn {
             margin-top: 20px;
         }
+
+        .liked {
+            color: #e63946 !important;
+            font-weight: bold;
+        }
     </style>
 </head>
 
 <body>
+    <!-- 네비게이션 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container"><a class="navbar-brand" href="main.html">MyBlog</a></div>
     </nav>
 
+    <!-- 게시글 상세 -->
     <div class="post-container">
         <h1 id="postTitle">게시글 제목</h1>
         <div id="postMeta">작성자: <span id="postAuthor">알 수 없음</span> | <span id="postDate"></span></div>
         <img id="postImage" src="">
         <div id="postContent">게시글 내용</div>
 
+        <!-- 좋아요 버튼 -->
         <div class="like-btn">
-            <button id="likeButton" class="btn btn-outline-primary">❤️ 좋아요 (<span id="likeCount">0</span>)</button>
+            <button id="likeButton" class="btn btn-outline-primary">
+                ❤️ 좋아요 (<span id="likeCount">0</span>)
+            </button>
         </div>
 
+        <!-- 댓글 영역 -->
         <div class="comment-box">
             <h4>댓글</h4>
             <div id="commentsList"></div>
             <textarea id="commentInput" class="form-control" placeholder="댓글을 입력하세요"></textarea>
-            <button class="btn btn-primary mt-2" onclick="addComment()">댓글 달기</button>
+            <button class="btn btn-primary mt-2" id="commentBtn">댓글 달기</button>
         </div>
 
         <div class="mt-5 text-end"><a href="main.html" class="btn btn-outline-secondary">← 목록으로</a></div>
@@ -86,85 +97,121 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const postId = params.get('post_id');
-        const userId = 1;
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const postId = params.get('post_id');
+            const userId = 1; // ✅ 실제 로그인된 유저 ID로 교체 필요 (지금은 임시값)
 
-        async function loadPost() {
-            try {
-                const res = await axios.get(`http://localhost:3000/posts/${postId}`);
-                const post = res.data;
-                document.getElementById('postTitle').textContent = post.title;
-                document.getElementById('postContent').textContent = post.content;
-                document.getElementById('postAuthor').textContent = post.author_name || '알 수 없음';
-                if (post.created_at) document.getElementById('postDate').textContent = new Date(post.created_at).toLocaleDateString();
-                if (post.image_url) {
-                    const img = document.getElementById('postImage');
-                    img.src = post.image_url;
-                    img.style.display = "block";
+            const likeButton = document.getElementById('likeButton');
+            const likeCountEl = document.getElementById('likeCount');
+            const commentBtn = document.getElementById('commentBtn');
+            const commentInput = document.getElementById('commentInput');
+
+            // ==============================
+            // 게시글 불러오기
+            // ==============================
+            async function loadPost() {
+                try {
+                    const res = await axios.get(`http://localhost:3000/posts/${postId}`, {
+                        params: { user_id: userId }
+                    });
+                    const post = res.data;
+
+                    document.getElementById('postTitle').textContent = post.title;
+                    document.getElementById('postContent').textContent = post.content;
+                    document.getElementById('postAuthor').textContent = post.author_name || '알 수 없음';
+                    document.getElementById('postDate').textContent = post.created_at
+                        ? new Date(post.created_at).toLocaleDateString()
+                        : '';
+
+                    if (post.image_url) {
+                        const img = document.getElementById('postImage');
+                        img.src = post.image_url;
+                        img.style.display = 'block';
+                    }
+
+                    // 좋아요 초기 상태 반영
+                    likeCountEl.textContent = post.like_count || 0;
+                    if (post.is_liked) {
+                        likeButton.classList.add('liked');
+                    } else {
+                        likeButton.classList.remove('liked');
+                    }
+
+                    // 댓글도 불러오기
+                    loadComments();
+                } catch (err) {
+                    console.error(err);
+                    alert('게시글 불러오기 실패');
                 }
-                loadLikes();
-                loadComments();
-            } catch (err) { console.error(err); alert('게시글 불러오기 실패'); }
-        }
+            }
 
-        async function loadLikes() {
-            try {
-                const res = await axios.get(`http://localhost:3000/posts/${postId}/likes`);
-                const likeCount = res.data.count || 0;
-                document.getElementById('likeCount').textContent = likeCount;
-                const btn = document.getElementById('likeButton');
-                if (res.data.is_liked) btn.classList.add('liked'); else btn.classList.remove('liked');
-            } catch (err) { console.error(err); }
-        }
+            // ==============================
+            // 좋아요 토글
+            // ==============================
+            likeButton.addEventListener('click', async () => {
+                let count = parseInt(likeCountEl.textContent);
+                const isLiked = likeButton.classList.contains('liked');
 
-        document.getElementById('likeButton').addEventListener('click', async function () {
-            const btn = this;
-            const countEl = document.getElementById('likeCount');
-            let count = parseInt(countEl.textContent);
-            const isLiked = btn.classList.contains('liked');
-
-            try {
-                if (!isLiked) {
-                    await axios.post(`http://localhost:3000/posts/${postId}/likes`, { user_id: userId });
-                    count++;
-                    btn.classList.add('liked');
-                    btn.style.color = '#e63946';
-                } else {
-                    await axios.delete(`http://localhost:3000/posts/${postId}/likes`, { data: { user_id: userId } });
-                    count--;
-                    btn.classList.remove('liked');
-                    btn.style.color = '#000';
+                try {
+                    if (!isLiked) {
+                        await axios.post(`http://localhost:3000/posts/${postId}/likes`, { user_id: userId });
+                        count++;
+                        likeButton.classList.add('liked');
+                    } else {
+                        await axios.delete(`http://localhost:3000/posts/${postId}/likes`, { data: { user_id: userId } });
+                        count--;
+                        likeButton.classList.remove('liked');
+                    }
+                    likeCountEl.textContent = count;
+                } catch (err) {
+                    console.error('좋아요 처리 실패:', err);
+                    alert('좋아요 처리 실패');
                 }
-                countEl.textContent = count;
-            } catch (err) { console.error(err); alert('좋아요 처리 실패'); }
+            });
+
+            // ==============================
+            // 댓글 불러오기
+            // ==============================
+            async function loadComments() {
+                try {
+                    const res = await axios.get(`http://localhost:3000/posts/${postId}/comments`);
+                    const list = document.getElementById('commentsList');
+                    list.innerHTML = "";
+                    res.data.forEach(c => {
+                        const div = document.createElement('div');
+                        div.classList.add('comment');
+                        div.textContent = `${c.author_name || '익명'}: ${c.content}`;
+                        list.appendChild(div);
+                    });
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+
+            // ==============================
+            // 댓글 작성
+            // ==============================
+            commentBtn.addEventListener('click', async () => {
+                const content = commentInput.value.trim();
+                if (!content) return alert("댓글을 입력하세요!");
+
+                try {
+                    await axios.post(`http://localhost:3000/posts/${postId}/comments`, {
+                        user_id: userId,
+                        content
+                    });
+                    commentInput.value = "";
+                    loadComments();
+                } catch (err) {
+                    console.error(err);
+                    alert("댓글 작성 실패");
+                }
+            });
+
+            // 초기 실행
+            loadPost();
         });
-
-        async function loadComments() {
-            try {
-                const res = await axios.get(`http://localhost:3000/posts/${postId}/comments`);
-                const list = document.getElementById('commentsList');
-                list.innerHTML = "";
-                res.data.forEach(c => {
-                    const div = document.createElement('div');
-                    div.classList.add('comment');
-                    div.textContent = `${c.author_name || '익명'}: ${c.content}`;
-                    list.appendChild(div);
-                });
-            } catch (err) { console.error(err); }
-        }
-
-        async function addComment() {
-            const content = document.getElementById('commentInput').value.trim();
-            if (!content) return alert("댓글을 입력하세요!");
-            try {
-                await axios.post(`http://localhost:3000/posts/${postId}/comments`, { user_id: userId, content });
-                document.getElementById('commentInput').value = "";
-                loadComments();
-            } catch (err) { console.error(err); alert("댓글 작성 실패"); }
-        }
-
-        loadPost();
     </script>
 </body>
 
