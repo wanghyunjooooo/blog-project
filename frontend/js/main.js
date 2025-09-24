@@ -4,6 +4,7 @@ if (!token) {
   window.location.href = "login.html";
 }
 
+// 이미지 경로 처리
 function getFullImagePath(filename, type = 'profile') {
   if (!filename) {
     return type === 'profile'
@@ -18,10 +19,12 @@ function getFullImagePath(filename, type = 'profile') {
   return '/uploads/' + filename;
 }
 
+// 게시글 불러오기
 async function loadPosts(query = '') {
   try {
+    // 서버 라우트에 맞게 수정
     const url = query
-      ? `http://localhost:3000/search?keyword=${encodeURIComponent(query)}`
+      ? `http://localhost:3000/posts/search?keyword=${encodeURIComponent(query)}`
       : `http://localhost:3000/posts`;
 
     const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -71,6 +74,7 @@ async function loadPosts(query = '') {
   }
 }
 
+// 좋아요 토글
 async function toggleLike(btn, postId) {
   const heart = btn.querySelector('i');
   const countEl = btn.querySelector('span');
@@ -92,6 +96,7 @@ async function toggleLike(btn, postId) {
   }
 }
 
+// 좋아요 클릭 이벤트
 document.getElementById('postList').addEventListener('click', async (e) => {
   const btn = e.target.closest('.like-btn');
   if (!btn) return;
@@ -100,9 +105,11 @@ document.getElementById('postList').addEventListener('click', async (e) => {
   await toggleLike(btn, postId);
 });
 
+// 검색 버튼 클릭
 document.getElementById('searchBtn').addEventListener('click', () => {
   const keyword = document.getElementById('searchInput').value.trim();
   loadPosts(keyword);
 });
 
+// 초기 게시글 불러오기
 loadPosts();

@@ -17,27 +17,27 @@ app.use(express.json()); // JSON body 파싱
 // 라우터
 const authRouter = require('./routes/auth');
 const profileRouter = require('./routes/profile');
-const postsRouter = require('./routes/posts'); // 게시글 라우터
+const postsRouter = require('./routes/posts');
 const commentRouter = require('./routes/comments');
 const likeRouter = require('./routes/likes');
-const searchRouter = require('./routes/search'); // search 별도 라우터
+const searchRouter = require('./routes/search');
 
-// ✅ 라우터 등록 순서 중요!
-// 1. 검색 라우트 먼저 등록 (충돌 방지)
+// ✅ 라우터 등록 순서 중요
+// 1️⃣ 검색 라우트 먼저 등록 (충돌 방지)
 app.use('/posts/search', searchRouter);
 
-// 2. 좋아요/댓글은 특정 postId 아래
+// 2️⃣ 좋아요/댓글 라우트
 app.use('/posts/:postId/likes', likeRouter);
 app.use('/posts/:postId/comments', commentRouter);
 
-// 3. 게시글 CRUD 및 특정 게시글 조회
+// 3️⃣ 게시글 CRUD 및 특정 게시글 조회
 app.use('/posts', postsRouter);
 
-// 4. 인증/프로필
+// 4️⃣ 인증 및 프로필
 app.use('/auth', authRouter);
 app.use('/users', profileRouter);
 
-// ✅ 업로드 폴더 static 제공
+// ✅ 업로드 폴더를 static 제공
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ✅ 프론트 정적 파일 제공 (마지막)
