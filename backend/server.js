@@ -1,3 +1,4 @@
+// backend/server.js
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
@@ -19,13 +20,22 @@ const profileRouter = require('./routes/profile');
 const postsRouter = require('./routes/posts'); // 게시글 라우터
 const commentRouter = require('./routes/comments');
 const likeRouter = require('./routes/likes');
+const searchRouter = require('./routes/search'); // search 별도 라우터
 
-// ✅ 라우터 먼저 등록 (static보다 위에 있어야 API 404 방지)
+// ✅ 라우터 등록 순서 중요!
+// 1. 검색 라우트 먼저 등록 (충돌 방지)
+app.use('/posts/search', searchRouter);
+
+// 2. 좋아요/댓글은 특정 postId 아래
 app.use('/posts/:postId/likes', likeRouter);
 app.use('/posts/:postId/comments', commentRouter);
+
+// 3. 게시글 CRUD 및 특정 게시글 조회
+app.use('/posts', postsRouter);
+
+// 4. 인증/프로필
 app.use('/auth', authRouter);
 app.use('/users', profileRouter);
-app.use('/posts', postsRouter);
 
 // ✅ 업로드 폴더 static 제공
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

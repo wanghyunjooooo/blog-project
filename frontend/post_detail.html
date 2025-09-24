@@ -44,15 +44,6 @@
             white-space: pre-line;
         }
 
-        .comment-box {
-            margin-top: 40px;
-        }
-
-        .comment {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-
         .like-btn {
             margin-top: 20px;
         }
@@ -60,6 +51,69 @@
         .liked {
             color: #e63946 !important;
             font-weight: bold;
+        }
+
+        /* 댓글 UI */
+        .comment-box {
+            margin-top: 40px;
+        }
+
+        .comment {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            gap: 10px;
+        }
+
+        .comment img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .comment-body {
+            background: #f1f3f5;
+            border-radius: 8px;
+            padding: 10px;
+            flex: 1;
+        }
+
+        .comment-header {
+            font-weight: bold;
+            font-size: 0.95rem;
+            margin-bottom: 5px;
+        }
+
+        .comment-time {
+            font-weight: normal;
+            font-size: 0.75rem;
+            color: #555;
+            margin-left: 5px;
+        }
+
+        .comment-text {
+            font-size: 0.9rem;
+        }
+
+        .comment-input-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .comment-input-wrapper img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .comment-input-wrapper textarea {
+            flex: 1;
+            resize: none;
         }
     </style>
 </head>
@@ -88,7 +142,10 @@
         <div class="comment-box">
             <h4>댓글</h4>
             <div id="commentsList"></div>
-            <textarea id="commentInput" class="form-control" placeholder="댓글을 입력하세요"></textarea>
+            <div class="comment-input-wrapper">
+                <img id="myProfilePic" src="https://via.placeholder.com/40" alt="프로필" />
+                <textarea id="commentInput" class="form-control" placeholder="댓글을 입력하세요"></textarea>
+            </div>
             <button class="btn btn-primary mt-2" id="commentBtn">댓글 달기</button>
         </div>
 
@@ -97,23 +154,47 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('로그인 후 접근 가능합니다.');
+                window.location.href = 'index.html';
+                return;
+            }
+
             const params = new URLSearchParams(window.location.search);
             const postId = params.get('post_id');
-            const userId = 1; // ✅ 실제 로그인된 유저 ID로 교체 필요 (지금은 임시값)
 
             const likeButton = document.getElementById('likeButton');
             const likeCountEl = document.getElementById('likeCount');
             const commentBtn = document.getElementById('commentBtn');
             const commentInput = document.getElementById('commentInput');
+            const myProfilePic = document.getElementById('myProfilePic');
+            const commentsList = document.getElementById('commentsList');
 
-            // ==============================
+            let userId;
+
+            // 로그인 유저 정보 가져오기
+            async function loadUserInfo() {
+                try {
+                    const res = await axios.get('http://localhost:3000/users/me', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const user = res.data.user;
+                    userId = user.user_id;
+                    myProfilePic.src = user.profile_img ? `http://localhost:3000${user.profile_img}` : 'https://via.placeholder.com/40';
+                } catch (err) {
+                    console.error(err);
+                    alert('유저 정보 불러오기 실패');
+                    window.location.href = 'index.html';
+                }
+            }
+
             // 게시글 불러오기
-            // ==============================
             async function loadPost() {
                 try {
                     const res = await axios.get(`http://localhost:3000/posts/${postId}`, {
-                        params: { user_id: userId }
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
                     const post = res.data;
 
@@ -126,19 +207,14 @@
 
                     if (post.image_url) {
                         const img = document.getElementById('postImage');
-                        img.src = post.image_url;
+                        img.src = post.image_url.startsWith('http') ? post.image_url : `http://localhost:3000${post.image_url}`;
                         img.style.display = 'block';
                     }
 
-                    // 좋아요 초기 상태 반영
+                    // 좋아요 초기 상태
                     likeCountEl.textContent = post.like_count || 0;
-                    if (post.is_liked) {
-                        likeButton.classList.add('liked');
-                    } else {
-                        likeButton.classList.remove('liked');
-                    }
+                    likeButton.classList.toggle('liked', post.is_liked);
 
-                    // 댓글도 불러오기
                     loadComments();
                 } catch (err) {
                     console.error(err);
@@ -146,52 +222,76 @@
                 }
             }
 
-            // ==============================
             // 좋아요 토글
-            // ==============================
             likeButton.addEventListener('click', async () => {
                 let count = parseInt(likeCountEl.textContent);
                 const isLiked = likeButton.classList.contains('liked');
 
                 try {
                     if (!isLiked) {
-                        await axios.post(`http://localhost:3000/posts/${postId}/likes`, { user_id: userId });
+                        await axios.post(`http://localhost:3000/posts/${postId}/likes`, { user_id: userId }, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
                         count++;
                         likeButton.classList.add('liked');
                     } else {
-                        await axios.delete(`http://localhost:3000/posts/${postId}/likes`, { data: { user_id: userId } });
+                        await axios.delete(`http://localhost:3000/posts/${postId}/likes`, {
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            data: { user_id: userId }
+                        });
                         count--;
                         likeButton.classList.remove('liked');
                     }
                     likeCountEl.textContent = count;
                 } catch (err) {
-                    console.error('좋아요 처리 실패:', err);
+                    console.error(err);
                     alert('좋아요 처리 실패');
                 }
             });
 
-            // ==============================
             // 댓글 불러오기
-            // ==============================
             async function loadComments() {
                 try {
-                    const res = await axios.get(`http://localhost:3000/posts/${postId}/comments`);
-                    const list = document.getElementById('commentsList');
-                    list.innerHTML = "";
+                    const res = await axios.get(`http://localhost:3000/posts/${postId}/comments`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    commentsList.innerHTML = '';
                     res.data.forEach(c => {
                         const div = document.createElement('div');
                         div.classList.add('comment');
-                        div.textContent = `${c.author_name || '익명'}: ${c.content}`;
-                        list.appendChild(div);
+
+                        const img = document.createElement('img');
+                        img.src = c.profile_img ? `http://localhost:3000${c.profile_img}` : 'https://via.placeholder.com/40';
+                        div.appendChild(img);
+
+                        const body = document.createElement('div');
+                        body.classList.add('comment-body');
+
+                        const header = document.createElement('div');
+                        header.classList.add('comment-header');
+                        header.textContent = c.author_name || '익명';
+
+                        const time = document.createElement('span');
+                        time.classList.add('comment-time');
+                        time.textContent = c.created_at ? ` | ${new Date(c.created_at).toLocaleString()}` : '';
+                        header.appendChild(time);
+
+                        const text = document.createElement('div');
+                        text.classList.add('comment-text');
+                        text.textContent = c.content;
+
+                        body.appendChild(header);
+                        body.appendChild(text);
+                        div.appendChild(body);
+
+                        commentsList.appendChild(div);
                     });
                 } catch (err) {
                     console.error(err);
                 }
             }
 
-            // ==============================
             // 댓글 작성
-            // ==============================
             commentBtn.addEventListener('click', async () => {
                 const content = commentInput.value.trim();
                 if (!content) return alert("댓글을 입력하세요!");
@@ -200,8 +300,10 @@
                     await axios.post(`http://localhost:3000/posts/${postId}/comments`, {
                         user_id: userId,
                         content
+                    }, {
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
-                    commentInput.value = "";
+                    commentInput.value = '';
                     loadComments();
                 } catch (err) {
                     console.error(err);
@@ -209,8 +311,8 @@
                 }
             });
 
-            // 초기 실행
-            loadPost();
+            await loadUserInfo();
+            await loadPost();
         });
     </script>
 </body>

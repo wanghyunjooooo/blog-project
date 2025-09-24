@@ -1,3 +1,4 @@
+// backend/routes/posts.js
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
@@ -18,15 +19,11 @@ const upload = multer({ storage });
 // helper: userId 안전하게 파싱
 // ====================
 function getUserId(req) {
-  // 1순위: authenticate 미들웨어에서 넣어준 req.user.userId
   if (req.user && req.user.userId) return parseInt(req.user.userId, 10);
-
-  // 2순위: query 파라미터로 넘어온 user_id
   if (req.query.user_id !== undefined) {
     const n = parseInt(req.query.user_id, 10);
     return Number.isNaN(n) ? null : n;
   }
-
   return null;
 }
 
@@ -34,7 +31,7 @@ function getUserId(req) {
 // 게시글 전체 조회 (좋아요 반영)
 // ====================
 router.get('/', async (req, res) => {
-  const userId = getUserId(req);
+  const userId = getUserId(req) || 0; // 로그인 안 되어도 전체 게시물 조회 가능
 
   try {
     const result = await pool.query(
@@ -127,7 +124,7 @@ router.post('/', authenticate, upload.single('image'), async (req, res) => {
 // ====================
 router.get('/:post_id', async (req, res) => {
   const { post_id } = req.params;
-  const userId = getUserId(req);
+  const userId = getUserId(req) || 0;
 
   try {
     const result = await pool.query(

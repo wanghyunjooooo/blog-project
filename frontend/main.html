@@ -133,7 +133,7 @@
     async function loadPosts(query = '') {
       try {
         const url = query
-          ? `http://localhost:3000/posts/search?keyword=${encodeURIComponent(query)}`
+          ? `http://localhost:3000/search?keyword=${encodeURIComponent(query)}`
           : `http://localhost:3000/posts`;
 
         const res = await axios.get(url, {
@@ -202,7 +202,7 @@
           });
         }
 
-        // ✅ 서버에서 최신 데이터 다시 받아옴
+        // 서버에서 최신 데이터 다시 받아옴
         const res = await axios.get(`http://localhost:3000/posts/${postId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });

@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
   const { postId } = req.params;
   try {
     const result = await pool.query(
-      `SELECT c.*, u.username AS author_name
+      `SELECT c.comment_id, c.content, c.created_at, u.username AS author_name, u.profile_img
        FROM Comments c
        LEFT JOIN Users u ON c.user_id = u.user_id
        WHERE c.post_id = $1

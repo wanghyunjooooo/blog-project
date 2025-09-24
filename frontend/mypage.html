@@ -27,6 +27,15 @@
     #myPostsList .card {
       border-radius: 12px;
     }
+
+    .post-img {
+      width: 200px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
   </style>
 </head>
 
@@ -86,9 +95,7 @@
     <div id="myPostsList"></div>
   </div>
 
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
   <script>
     const editBtn = document.getElementById('editBtn');
     const form = document.getElementById('profileForm');
@@ -97,26 +104,15 @@
     const introDisplay = document.getElementById('introDisplay');
     const logoutBtn = document.getElementById('logoutBtn');
     const myPostsList = document.getElementById('myPostsList');
-
     const token = localStorage.getItem('token');
-    if (!token) {
-      alert('로그인 후 접근 가능합니다.');
-      window.location.href = 'index.html';
-    }
+
+    if (!token) { alert('로그인 후 접근 가능합니다.'); window.location.href = 'index.html'; }
 
     // 로그아웃
     logoutBtn.addEventListener('click', async () => {
-      try {
-        await fetch('http://localhost:3000/auth/logout', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      } catch (err) {
-        console.error('서버 로그아웃 오류:', err);
-      } finally {
-        localStorage.removeItem('token');
-        window.location.href = 'index.html';
-      }
+      try { await fetch('http://localhost:3000/auth/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } }); }
+      catch (e) { console.error(e); }
+      finally { localStorage.removeItem('token'); window.location.href = 'index.html'; }
     });
 
     // 프로필 수정 토글
@@ -126,20 +122,16 @@
       document.getElementById('intro').value = introDisplay.textContent !== '소개글 없음' ? introDisplay.textContent.replace('소개글: ', '') : '';
     });
 
-    // 이미지 미리보기
     document.getElementById('profilePic').addEventListener('change', e => {
       const file = e.target.files[0];
       if (file) profilePreview.src = URL.createObjectURL(file);
     });
 
-    // 프로필 저장
     form.addEventListener('submit', async e => {
       e.preventDefault();
-
       const username = document.getElementById('username').value.trim();
       const intro = document.getElementById('intro').value.trim();
       const file = document.getElementById('profilePic').files[0];
-
       const formData = new FormData();
       formData.append('username', username);
       formData.append('intro', intro);
@@ -151,37 +143,23 @@
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
         });
-
         const data = await res.json();
-
         if (res.ok) {
           usernameDisplay.textContent = data.user.username;
           introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
           if (data.user.profile_img) profilePreview.src = `http://localhost:3000${data.user.profile_img}`;
           form.style.display = 'none';
-        } else {
-          alert(data.message);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('서버 오류 발생');
-      }
+        } else alert(data.message);
+      } catch (err) { console.error(err); alert('서버 오류 발생'); }
     });
 
     // 내 글 불러오기
     async function loadMyPosts() {
       try {
-        const res = await fetch('http://localhost:3000/posts/my-posts', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch('http://localhost:3000/posts/my-posts', { headers: { 'Authorization': `Bearer ${token}` } });
         const posts = await res.json();
-
         if (!res.ok) throw new Error(posts.message || '서버 오류');
-
-        if (posts.length === 0) {
-          myPostsList.innerHTML = '<p>작성한 글이 없습니다.</p>';
-          return;
-        }
+        if (posts.length === 0) { myPostsList.innerHTML = '<p>작성한 글이 없습니다.</p>'; return; }
 
         myPostsList.innerHTML = '';
         posts.forEach(post => {
@@ -190,102 +168,44 @@
           div.innerHTML = `
             <h5>${post.title}</h5>
             <p>${post.content}</p>
-            ${post.image_url ? `<img src="http://localhost:3000${post.image_url}" class="img-fluid mb-2">` : ''}
+            ${post.image_url ? `<img src="http://localhost:3000${post.image_url}" class="post-img">` : ''}
             <div class="d-flex gap-2">
               <button class="btn btn-sm btn-primary editBtn" data-id="${post.post_id}">수정</button>
               <button class="btn btn-sm btn-danger deleteBtn" data-id="${post.post_id}">삭제</button>
             </div>
           `;
           myPostsList.appendChild(div);
-        });
 
-        // 수정/삭제 버튼 이벤트
-        document.querySelectorAll('.editBtn').forEach(btn => {
-          btn.addEventListener('click', e => editPost(e.target.dataset.id));
-        });
+          // 수정 → post.html 이동
+          div.querySelector('.editBtn').addEventListener('click', () => {
+            window.location.href = `post.html?post_id=${post.post_id}`;
+          });
 
-        document.querySelectorAll('.deleteBtn').forEach(btn => {
-          btn.addEventListener('click', e => deletePost(e.target.dataset.id));
+          // 삭제
+          div.querySelector('.deleteBtn').addEventListener('click', async () => {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            try {
+              const resDel = await fetch(`http://localhost:3000/posts/${post.post_id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+              const dataDel = await resDel.json();
+              if (!resDel.ok) throw new Error(dataDel.message || '삭제 실패');
+              alert('삭제 성공');
+              loadMyPosts();
+            } catch (err) { console.error(err); alert(err.message); }
+          });
         });
-
-      } catch (err) {
-        console.error(err);
-        myPostsList.innerHTML = `<p class="text-danger">내 글 불러오기 실패</p>`;
-      }
+      } catch (err) { console.error(err); myPostsList.innerHTML = '<p class="text-danger">내 글 불러오기 실패</p>'; }
     }
 
-    // 글 삭제
-    async function deletePost(postId) {
-      if (!confirm('정말 삭제하시겠습니까?')) return;
-
-      try {
-        const res = await fetch(`http://localhost:3000/posts/${postId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || '삭제 실패');
-
-        alert('삭제 성공');
-        loadMyPosts();
-      } catch (err) {
-        console.error(err);
-        alert(err.message);
-      }
-    }
-
-    // 글 수정
-    async function editPost(postId) {
-      const newTitle = prompt('새 제목을 입력하세요');
-      if (!newTitle) return;
-      const newContent = prompt('새 내용을 입력하세요');
-      if (!newContent) return;
-
-      try {
-        const formData = new FormData();
-        formData.append('title', newTitle);
-        formData.append('content', newContent);
-
-        const res = await fetch(`http://localhost:3000/posts/${postId}`, {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || '수정 실패');
-
-        alert('수정 성공');
-        loadMyPosts();
-      } catch (err) {
-        console.error(err);
-        alert(err.message);
-      }
-    }
-
-    // 페이지 로드 시 프로필과 내 글 불러오기
     (async function init() {
       try {
-        const res = await fetch('http://localhost:3000/users/me', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch('http://localhost:3000/users/me', { headers: { 'Authorization': `Bearer ${token}` } });
         const data = await res.json();
-
         if (res.ok) {
           usernameDisplay.textContent = data.user.username;
           introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
-          profilePreview.src = data.user.profile_img
-            ? `http://localhost:3000${data.user.profile_img}`
-            : "https://via.placeholder.com/120";
-        } else {
-          alert(data.message);
-          window.location.href = 'index.html';
-        }
-      } catch (err) {
-        console.error(err);
-        alert('서버 오류 발생');
-      }
+          profilePreview.src = data.user.profile_img ? `http://localhost:3000${data.user.profile_img}` : "https://via.placeholder.com/120";
+        } else { alert(data.message); window.location.href = 'index.html'; }
+      } catch (err) { console.error(err); alert('서버 오류 발생'); }
 
       loadMyPosts();
     })();
