@@ -63,7 +63,7 @@ form.addEventListener('submit', async e => {
       introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
       profilePreview.src = data.user.profile_img
         ? resolveImageUrl(data.user.profile_img)
-        : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s";
+        : "/uploads/default_profile.png";
       form.style.display = 'none';
     } else alert(data.message);
   } catch (err) {
@@ -74,9 +74,10 @@ form.addEventListener('submit', async e => {
 
 // uploads 경로를 자동 붙이는 함수
 function resolveImageUrl(path) {
-  if (!path) return null;
+  if (!path) return '/uploads/default_profile.png'; // 기본 이미지
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  return path.startsWith('/') ? `http://localhost:3000/uploads${path}` : `http://localhost:3000/uploads/${path}`;
+  if (path.startsWith('/')) return path;   // 이미 /로 시작하면 그대로
+  return `/uploads/${path}`;               // 없으면 /uploads/ 붙이기
 }
 
 // 내 글 불러오기
@@ -148,7 +149,7 @@ async function loadMyPosts() {
     if (res.ok) {
       usernameDisplay.textContent = data.user.username;
       introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
-      profilePreview.src = data.user.profile_img ? resolveImageUrl(data.user.profile_img) : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s";
+      profilePreview.src = data.user.profile_img ? resolveImageUrl(data.user.profile_img) : "/uploads/default_profile.png";
     } else {
       alert(data.message);
       window.location.href = 'index.html';

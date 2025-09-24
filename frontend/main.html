@@ -15,10 +15,19 @@
     <div class="container">
       <a class="navbar-brand" href="#">MyBlog</a>
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
+        <ul class="navbar-nav ms-auto align-items-center">
           <li class="nav-item"><a class="nav-link active" href="main.html">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="post.html">Post</a></li>
           <li class="nav-item"><a class="nav-link" href="mypage.html">My</a></li>
+          <!-- 알림 -->
+          <li class="nav-item notif-dropdown ms-3">
+            <a href="javascript:void(0)" id="notifBtn" class="nav-link position-relative">
+              <i class="fas fa-bell"></i>
+              <span id="notifCount"
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+            </a>
+            <div id="notifList" class="notif-dropdown-content"></div>
+          </li>
         </ul>
       </div>
     </div>

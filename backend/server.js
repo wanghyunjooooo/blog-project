@@ -21,6 +21,9 @@ const postsRouter = require('./routes/posts');
 const commentRouter = require('./routes/comments');
 const likeRouter = require('./routes/likes');
 const searchRouter = require('./routes/search');
+const notificationsRouter = require('./routes/notifications');
+
+app.use('/notifications', notificationsRouter);
 
 // ✅ 라우터 등록 순서 중요
 // 1️⃣ 검색 라우트 먼저 등록 (충돌 방지)
