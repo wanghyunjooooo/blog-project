@@ -9,7 +9,8 @@ router.get('/', authenticate, async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT * FROM Notifications 
+            `SELECT notification_id, user_id, type, message, post_id, actor_name, post_title, comment, is_read, created_at
+             FROM Notifications 
              WHERE user_id = $1 
              ORDER BY created_at DESC`,
             [userId]
@@ -46,20 +47,31 @@ router.patch('/:id/read', authenticate, async (req, res) => {
     }
 });
 
-// 🔹 새로운 알림 생성 (post_id 포함 가능)
+// 🔹 새로운 알림 생성 (좋아요/댓글용)
 router.post('/', async (req, res) => {
-    const { user_id, type, message, post_id } = req.body;
+    const { user_id, type, post_id, actor_name, post_title, comment } = req.body;
 
-    if (!user_id || !type || !message) {
-        return res.status(400).json({ message: 'user_id, type, message 필요' });
+    if (!user_id || !type) {
+        return res.status(400).json({ message: 'user_id, type 필요' });
+    }
+
+    // 기본 메시지 자동 생성
+    let message = '';
+    if (type === '좋아요') {
+        message = `${actor_name || '누군가'}님이 "${post_title || '게시글'}" 글을 좋아합니다.`;
+    } else if (type === '댓글') {
+        message = `${actor_name || '누군가'}님이 "${post_title || '게시글'}" 글에 댓글: "${comment || ''}"`;
+    } else {
+        message = '새 알림이 도착했습니다.';
     }
 
     try {
         const result = await pool.query(
-            `INSERT INTO Notifications (user_id, type, message, post_id)
-             VALUES ($1, $2, $3, $4)
+            `INSERT INTO Notifications 
+            (user_id, type, message, post_id, actor_name, post_title, comment)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
              RETURNING *`,
-            [user_id, type, message, post_id || null]
+            [user_id, type, message, post_id || null, actor_name || null, post_title || null, comment || null]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {

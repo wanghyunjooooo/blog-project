@@ -1,3 +1,4 @@
+/* ----------------- 포스트 스타일 ----------------- */
 .post-item {
     display: flex;
     border-bottom: 1px solid #e0e0e0;
@@ -84,45 +85,41 @@
     margin: 20px auto;
 }
 
-/* ----------------- 알림 드롭다운 ----------------- */
-/* ----------------- 알림 드롭다운 ----------------- */
+/* ----------------- 알림 드롭다운 (모던 업그레이드) ----------------- */
 .notif-dropdown {
-    position: static;
-    /* 부모 기준 위치 제거 */
-    z-index: 0;
-    /* 여기서는 의미 없음 */
+    position: relative;
 }
 
-/* 드롭다운 자체를 body 기준 절대 위치로 */
 .notif-dropdown-content {
     display: none;
     position: fixed;
-    /* fixed로 body 기준 */
     top: 60px;
-    /* navbar 높이에 맞춰 조정 */
     right: 20px;
-    /* 우측 끝에서 20px */
-    background-color: #fff;
-    min-width: 250px;
-    max-height: 350px;
+    background-color: #ffffff;
+    min-width: 280px;
+    max-height: 400px;
     overflow-y: auto;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    z-index: 9999;
-    /* 충분히 높게 */
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     padding: 0.5rem 0;
+    z-index: 9999;
+    transition: all 0.3s ease-in-out;
 }
+
 .notif-dropdown-content.show {
     display: block;
 }
 
 .notif-item {
-    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 0.6rem 1rem;
     cursor: pointer;
     font-size: 0.9rem;
     color: #333;
     border-bottom: 1px solid #eee;
-    transition: background-color 0.2s;
+    transition: background 0.2s, transform 0.2s;
 }
 
 .notif-item:last-child {
@@ -130,15 +127,63 @@
 }
 
 .notif-item:hover {
-    background-color: #f1f1f1;
+    background-color: #f5f5f5;
+    transform: translateX(2px);
 }
 
 .notif-item.unread {
     font-weight: 600;
-    background-color: #ffeaea;
+    background-color: #fff2f2;
+    border-left: 4px solid #e63946;
+}
+
+
+
+.notif-item img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.notif-item .notif-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.notif-item .notif-content strong {
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: #111;
+}
+
+.notif-item .notif-content span {
+    font-size: 0.85rem;
+    color: #555;
+    word-break: break-word;
 }
 
 .notif-dropdown #notifCount {
     font-size: 0.75rem;
-    padding: 0.2rem 0.5rem;
+    padding: 0.25rem 0.55rem;
+    background-color: #e63946;
+    color: #fff;
+    border-radius: 50%;
+    font-weight: 600;
+}
+
+/* 스크롤바 깔끔하게 */
+.notif-dropdown-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notif-dropdown-content::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.notif-dropdown-content::-webkit-scrollbar-track {
+    background-color: transparent;
 }

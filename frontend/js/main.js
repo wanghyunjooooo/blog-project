@@ -53,7 +53,7 @@ async function loadPosts(query = '') {
                     </div>
                     <div class="post-title">${post.title}</div>
                     <div class="post-summary">${post.content}</div>
-                    <button class="like-btn ${liked}" data-id="${post.post_id}">
+                    <button class="like-btn ${liked}" data-id="${post.post_id}" data-author="${post.author_name}" data-title="${post.title}">
                         <i class="fas fa-heart" style="color:${post.is_liked ? '#e63946' : '#555'};"></i>
                         <span>${post.like_count || 0}</span>
                     </button>
@@ -79,26 +79,26 @@ async function toggleLike(btn, postId) {
     const heart = btn.querySelector('i');
     const countEl = btn.querySelector('span');
     const isLiked = btn.classList.contains('liked');
+    const postTitle = btn.dataset.title;
+    const postAuthor = btn.dataset.author;
 
     try {
         let res;
 
         if (!isLiked) {
-            // 좋아요 추가
             res = await axios.post(`http://localhost:3000/posts/${postId}/likes`, {}, { headers: { Authorization: `Bearer ${token}` } });
 
-            // ✅ 게시글 작성자에게 좋아요 알림 생성
+            // 게시글 작성자에게 좋아요 알림 생성 (API 확장 필요)
             if (res.data.post_owner_id && res.data.post_owner_id !== res.data.user_id) {
                 await axios.post('http://localhost:3000/notifications', {
                     user_id: res.data.post_owner_id,
                     type: '좋아요',
-                    message: `[좋아요] 회원이 회원님의 게시글을 좋아합니다.`,
-                    post_id: postId
+                    actor_name: res.data.user_name,
+                    post_id: postId,
+                    post_title: postTitle
                 }, { headers: { Authorization: `Bearer ${token}` } });
             }
-
         } else {
-            // 좋아요 취소
             res = await axios.delete(`http://localhost:3000/posts/${postId}/likes`, { headers: { Authorization: `Bearer ${token}` } });
         }
 
@@ -142,11 +142,20 @@ async function loadNotifications() {
 
         notifications.forEach(n => {
             if (!n.is_read) unreadCount++;
+
             const div = document.createElement('div');
             div.className = `notif-item ${!n.is_read ? 'unread' : ''}`;
-            div.innerHTML = `<strong>[${n.type}]</strong> ${n.message}`;
             div.dataset.id = n.notification_id;
             div.dataset.postId = n.post_id;
+
+            // 타입별 알림 메시지
+            if (n.type === '좋아요') {
+                div.innerHTML = `<strong>[좋아요]</strong> ${n.actor_name || '누군가'}님이 "${n.post_title || '게시글'}" 글을 좋아합니다.`;
+            } else if (n.type === '댓글') {
+                div.innerHTML = `<strong>[댓글]</strong> ${n.actor_name || '누군가'}님이 "${n.post_title || '게시글'}" 글에 댓글: "${n.comment || ''}"`;
+            } else {
+                div.innerHTML = `<strong>[알림]</strong> ${n.message}`;
+            }
 
             div.addEventListener('click', async () => {
                 if (!n.is_read) {

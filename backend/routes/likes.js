@@ -7,8 +7,8 @@ const authenticate = require('../middleware/authenticate'); // 인증 미들웨�
 // 좋아요 추가
 // -------------------------------
 router.post('/', authenticate, async (req, res) => {
-  const post_id = parseInt(req.params.postId); // URL params에서 가져온 postId
-  const user_id = req.user.userId;            // 현재 로그인한 사용자
+  const post_id = parseInt(req.params.postId);
+  const user_id = req.user.userId;
 
   try {
     // 1️⃣ Likes 테이블에 좋아요 추가
@@ -21,7 +21,7 @@ router.post('/', authenticate, async (req, res) => {
 
     // 2️⃣ 게시글 작성자 조회
     const postRes = await pool.query(
-      `SELECT user_id FROM Posts WHERE post_id = $1`,
+      `SELECT user_id, title FROM Posts WHERE post_id = $1`,
       [post_id]
     );
 
@@ -30,6 +30,7 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     const postOwnerId = postRes.rows[0].user_id;
+    const postTitle = postRes.rows[0].title;
 
     // 3️⃣ 작성자가 좋아요 누른 사람과 다르면 알림 생성
     if (postOwnerId !== user_id) {
@@ -40,12 +41,19 @@ router.post('/', authenticate, async (req, res) => {
         [postOwnerId, post_id]
       );
 
-      // 알림 없으면 생성
       if (!existing.rows.length) {
+        // 알림 생성 (actor_name, post_title 포함)
         await pool.query(
-          `INSERT INTO Notifications (user_id, type, message, post_id)
-           VALUES ($1, $2, $3, $4)`,
-          [postOwnerId, '좋아요', '게시글에 새 좋아요가 있습니다.', post_id]
+          `INSERT INTO Notifications (user_id, type, message, post_id, actor_name, post_title)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            postOwnerId,
+            '좋아요',
+            `${req.user.username || '누군가'}님이 "${postTitle}" 글을 좋아합니다.`,
+            post_id,
+            req.user.username || '누군가',
+            postTitle
+          ]
         );
         console.log(`좋아요 알림 생성됨: post_id=${post_id}, user_id=${postOwnerId}`);
       }
