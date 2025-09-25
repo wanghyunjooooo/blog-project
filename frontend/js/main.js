@@ -13,12 +13,16 @@ function getFullImagePath(filename, type = 'profile') {
             : null;
         return defaultImg;
     }
+
     if (filename.startsWith('http://') || filename.startsWith('https://')) {
-        return filename;
+        return filename; // 외부 이미지 URL은 그대로 반환
     }
-    filename = filename.replace(/^\/uploads\/+/, '');
-    return 'http://localhost:3000/' + filename;
+    
+    const onlyFilename = filename.split('/').pop();
+
+    return 'http://localhost:3000/uploads/' + onlyFilename;
 }
+
 
 // ----------------- 포스트 불러오기 -----------------
 async function loadPosts(query = '') {
