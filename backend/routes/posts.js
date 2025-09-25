@@ -1,4 +1,3 @@
-// backend/routes/posts.js
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
@@ -63,7 +62,7 @@ router.get('/', async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    console.error('게시글 전체 조회 실패:', err);
+    console.error('게시글 전체 조회 실패:', err.stack);
     res.status(500).json({ message: '게시글 조회 실패' });
   }
 });
@@ -95,7 +94,7 @@ router.get('/my-posts', authenticate, async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    console.error('내 글 조회 실패:', err);
+    console.error('내 글 조회 실패:', err.stack);
     res.status(500).json({ message: '서버 오류' });
   }
 });
@@ -135,7 +134,7 @@ router.post('/', authenticate, upload.single('image'), async (req, res) => {
 
     res.json(postWithAuthor.rows[0]);
   } catch (err) {
-    console.error('게시글 작성 실패:', err);
+    console.error('게시글 작성 실패:', err.stack);
     res.status(500).json({ message: '게시글 작성 실패' });
   }
 });
@@ -144,7 +143,7 @@ router.post('/', authenticate, upload.single('image'), async (req, res) => {
 // 특정 게시글 조회 (좋아요 + 댓글 포함)
 // ====================
 router.get('/:post_id', async (req, res) => {
-  const { post_id } = req.params;
+  const postId = parseInt(req.params.post_id, 10);
   const userId = getUserId(req) || 0;
 
   try {
@@ -177,7 +176,7 @@ router.get('/:post_id', async (req, res) => {
       LEFT JOIN likes ul ON ul.post_id = p.post_id AND ul.user_id = $2
       WHERE p.post_id = $1
       `,
-      [post_id, userId]
+      [postId, userId]
     );
 
     if (postResult.rows.length === 0) return res.status(404).json({ message: '게시글 없음' });
@@ -202,14 +201,14 @@ router.get('/:post_id', async (req, res) => {
       WHERE c.post_id = $1
       ORDER BY c.created_at ASC
       `,
-      [post_id]
+      [postId]
     );
 
     post.comments = commentsResult.rows;
 
     res.json(post);
   } catch (err) {
-    console.error('특정 게시글 조회 실패:', err);
+    console.error('특정 게시글 조회 실패:', err.stack);
     res.status(500).json({ message: '서버 오류' });
   }
 });
@@ -218,18 +217,18 @@ router.get('/:post_id', async (req, res) => {
 // 게시글 수정 (본인 글만)
 // ====================
 router.put('/:post_id', authenticate, upload.single('image'), async (req, res) => {
-  const { post_id } = req.params;
+  const postId = parseInt(req.params.post_id, 10);
   const { title, content } = req.body;
   const userId = req.user.userId;
   const image_url = req.file ? req.file.filename : null;
 
   try {
-    const check = await pool.query('SELECT * FROM posts WHERE post_id=$1 AND user_id=$2', [post_id, userId]);
+    const check = await pool.query('SELECT * FROM posts WHERE post_id=$1 AND user_id=$2', [postId, userId]);
     if (check.rows.length === 0) return res.status(403).json({ message: '권한 없음' });
 
     await pool.query(
       'UPDATE posts SET title=$1, content=$2, image_url=COALESCE($3, image_url), updated_at=NOW() WHERE post_id=$4',
-      [title, content, image_url, post_id]
+      [title, content, image_url, postId]
     );
 
     const updated = await pool.query(
@@ -246,12 +245,12 @@ router.put('/:post_id', authenticate, upload.single('image'), async (req, res) =
       LEFT JOIN users u ON p.user_id = u.user_id
       WHERE p.post_id=$1
       `,
-      [post_id]
+      [postId]
     );
 
     res.json(updated.rows[0]);
   } catch (err) {
-    console.error('게시글 수정 실패:', err);
+    console.error('게시글 수정 실패:', err.stack);
     res.status(500).json({ message: '게시글 수정 실패' });
   }
 });
@@ -260,17 +259,24 @@ router.put('/:post_id', authenticate, upload.single('image'), async (req, res) =
 // 게시글 삭제 (본인 글만)
 // ====================
 router.delete('/:post_id', authenticate, async (req, res) => {
-  const { post_id } = req.params;
+  const postId = parseInt(req.params.post_id, 10);
   const userId = req.user.userId;
 
   try {
-    const check = await pool.query('SELECT * FROM posts WHERE post_id=$1 AND user_id=$2', [post_id, userId]);
-    if (check.rows.length === 0) return res.status(403).json({ message: '권한 없음' });
+    const check = await pool.query('SELECT * FROM posts WHERE post_id=$1 AND user_id=$2', [postId, userId]);
+    if (check.rows.length === 0) {
+      return res.status(403).json({ message: '권한 없음' });
+    }
 
-    const deleted = await pool.query('DELETE FROM posts WHERE post_id=$1 RETURNING *', [post_id]);
+    const deleted = await pool.query('DELETE FROM posts WHERE post_id=$1 RETURNING *', [postId]);
+
+    if (deleted.rows.length === 0) {
+      return res.status(404).json({ message: '이미 삭제된 게시글' });
+    }
+
     res.json({ message: '삭제 성공', post: deleted.rows[0] });
   } catch (err) {
-    console.error('게시글 삭제 실패:', err);
+    console.error('게시글 삭제 실패:', err.stack);
     res.status(500).json({ message: '게시글 삭제 실패' });
   }
 });
