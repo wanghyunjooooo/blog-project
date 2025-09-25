@@ -2,16 +2,31 @@
 const token = localStorage.getItem("token");
 if (!token) {
     alert("로그인이 필요합니다.");
-    window.location.href = "login.html";
+    window.location.href = "index.html";
 }
 
 // ----------------- 이미지 경로 -----------------
 function getFullImagePath(filename, type = 'profile') {
-    if (!filename) return type === 'profile'
-        ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
-        : null;
-    if (filename.startsWith('http') || filename.startsWith('https')) return filename;
-    return '/uploads/' + filename;
+  
+
+    if (!filename) {
+        const defaultImg = type === 'profile'
+            ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
+            : null;
+
+        return defaultImg;
+    }
+
+    if (filename.startsWith('http://') || filename.startsWith('https://')) {
+    
+        return filename;
+    }
+
+    // 중복 /uploads 제거
+    filename = filename.replace(/^\/uploads\/+/, ''); 
+    const fullPath = 'http://localhost:3000/' + filename;
+
+    return fullPath;
 }
 
 // ----------------- 포스트 불러오기 -----------------
@@ -21,8 +36,11 @@ async function loadPosts(query = '') {
             ? `http://localhost:3000/posts/search?keyword=${encodeURIComponent(query)}`
             : `http://localhost:3000/posts`;
 
+        console.log("Fetching posts from:", url);
         const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
         const posts = res.data;
+        console.log("Posts received:", posts);
+
         const postList = document.getElementById('postList');
         postList.innerHTML = '';
 
@@ -32,12 +50,16 @@ async function loadPosts(query = '') {
         }
 
         posts.forEach(post => {
+            console.log("Processing post:", post);
+
             const div = document.createElement('div');
             div.className = 'post-item';
 
             const authorImg = getFullImagePath(post.author_profile, 'profile');
             const postImg = getFullImagePath(post.image_url, 'post');
             const liked = post.is_liked ? 'liked' : '';
+
+            console.log("Author image path:", authorImg, "Post image path:", postImg);
 
             div.innerHTML = `
                 <div class="post-left">
@@ -125,22 +147,18 @@ async function loadNotifications() {
             div.className = `notif-item ${!n.is_read ? 'unread' : ''}`;
             div.innerHTML = `<strong>[${n.type}]</strong> ${n.message}`;
             div.dataset.id = n.notification_id;
-            div.dataset.postId = n.post_id; // 클릭 시 이동용
+            div.dataset.postId = n.post_id;
 
             div.addEventListener('click', async () => {
-                // 1️⃣ 읽음 처리
                 if (!n.is_read) {
                     await axios.patch(`http://localhost:3000/notifications/${n.notification_id}/read`, {}, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                 }
-
-                // 2️⃣ 게시글로 이동
                 if (n.post_id) {
                     window.location.href = `post_detail.html?post_id=${n.post_id}`;
                 }
-
-                loadNotifications(); // 갱신
+                loadNotifications();
             });
 
             notifList.appendChild(div);
