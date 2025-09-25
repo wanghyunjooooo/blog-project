@@ -7,26 +7,17 @@ if (!token) {
 
 // ----------------- 이미지 경로 -----------------
 function getFullImagePath(filename, type = 'profile') {
-  
-
     if (!filename) {
         const defaultImg = type === 'profile'
             ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s'
             : null;
-
         return defaultImg;
     }
-
     if (filename.startsWith('http://') || filename.startsWith('https://')) {
-    
         return filename;
     }
-
-    // 중복 /uploads 제거
-    filename = filename.replace(/^\/uploads\/+/, ''); 
-    const fullPath = 'http://localhost:3000/' + filename;
-
-    return fullPath;
+    filename = filename.replace(/^\/uploads\/+/, '');
+    return 'http://localhost:3000/' + filename;
 }
 
 // ----------------- 포스트 불러오기 -----------------
@@ -35,11 +26,8 @@ async function loadPosts(query = '') {
         const url = query
             ? `http://localhost:3000/posts/search?keyword=${encodeURIComponent(query)}`
             : `http://localhost:3000/posts`;
-
-        console.log("Fetching posts from:", url);
         const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
         const posts = res.data;
-        console.log("Posts received:", posts);
 
         const postList = document.getElementById('postList');
         postList.innerHTML = '';
@@ -50,16 +38,12 @@ async function loadPosts(query = '') {
         }
 
         posts.forEach(post => {
-            console.log("Processing post:", post);
-
             const div = document.createElement('div');
             div.className = 'post-item';
 
             const authorImg = getFullImagePath(post.author_profile, 'profile');
             const postImg = getFullImagePath(post.image_url, 'post');
             const liked = post.is_liked ? 'liked' : '';
-
-            console.log("Author image path:", authorImg, "Post image path:", postImg);
 
             div.innerHTML = `
                 <div class="post-left">
@@ -90,16 +74,33 @@ async function loadPosts(query = '') {
     }
 }
 
-// ----------------- 좋아요 토글 -----------------
+// ----------------- 좋아요 토글 + 알림 -----------------
 async function toggleLike(btn, postId) {
     const heart = btn.querySelector('i');
     const countEl = btn.querySelector('span');
     const isLiked = btn.classList.contains('liked');
 
     try {
-        const res = !isLiked
-            ? await axios.post(`http://localhost:3000/posts/${postId}/likes`, {}, { headers: { Authorization: `Bearer ${token}` } })
-            : await axios.delete(`http://localhost:3000/posts/${postId}/likes`, { headers: { Authorization: `Bearer ${token}` } });
+        let res;
+
+        if (!isLiked) {
+            // 좋아요 추가
+            res = await axios.post(`http://localhost:3000/posts/${postId}/likes`, {}, { headers: { Authorization: `Bearer ${token}` } });
+
+            // ✅ 게시글 작성자에게 좋아요 알림 생성
+            if (res.data.post_owner_id && res.data.post_owner_id !== res.data.user_id) {
+                await axios.post('http://localhost:3000/notifications', {
+                    user_id: res.data.post_owner_id,
+                    type: '좋아요',
+                    message: `[좋아요] 회원이 회원님의 게시글을 좋아합니다.`,
+                    post_id: postId
+                }, { headers: { Authorization: `Bearer ${token}` } });
+            }
+
+        } else {
+            // 좋아요 취소
+            res = await axios.delete(`http://localhost:3000/posts/${postId}/likes`, { headers: { Authorization: `Bearer ${token}` } });
+        }
 
         const { like_count, is_liked } = res.data;
         btn.classList.toggle('liked', is_liked);
@@ -133,9 +134,7 @@ const notifCount = document.getElementById('notifCount');
 
 async function loadNotifications() {
     try {
-        const res = await axios.get('http://localhost:3000/notifications', {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await axios.get('http://localhost:3000/notifications', { headers: { Authorization: `Bearer ${token}` } });
         const notifications = res.data;
 
         notifList.innerHTML = '';

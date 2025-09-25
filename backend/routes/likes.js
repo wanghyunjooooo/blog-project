@@ -7,11 +7,11 @@ const authenticate = require('../middleware/authenticate'); // 인증 미들웨�
 // 좋아요 추가
 // -------------------------------
 router.post('/', authenticate, async (req, res) => {
-  const post_id = req.params.postId;
-  const user_id = req.user.userId;
+  const post_id = parseInt(req.params.postId); // URL params에서 가져온 postId
+  const user_id = req.user.userId;            // 현재 로그인한 사용자
 
   try {
-    // 좋아요 추가
+    // 1️⃣ Likes 테이블에 좋아요 추가
     await pool.query(
       `INSERT INTO Likes (post_id, user_id)
        VALUES ($1, $2)
@@ -19,8 +19,40 @@ router.post('/', authenticate, async (req, res) => {
       [post_id, user_id]
     );
 
-    // 좋아요 수 & 현재 사용자가 좋아요 눌렀는지 조회
+    // 2️⃣ 게시글 작성자 조회
     const postRes = await pool.query(
+      `SELECT user_id FROM Posts WHERE post_id = $1`,
+      [post_id]
+    );
+
+    if (!postRes.rows.length) {
+      return res.status(404).json({ error: '게시물 없음' });
+    }
+
+    const postOwnerId = postRes.rows[0].user_id;
+
+    // 3️⃣ 작성자가 좋아요 누른 사람과 다르면 알림 생성
+    if (postOwnerId !== user_id) {
+      // 이미 읽지 않은 좋아요 알림 있는지 확인
+      const existing = await pool.query(
+        `SELECT 1 FROM Notifications
+         WHERE user_id = $1 AND post_id = $2 AND type = '좋아요' AND is_read = false`,
+        [postOwnerId, post_id]
+      );
+
+      // 알림 없으면 생성
+      if (!existing.rows.length) {
+        await pool.query(
+          `INSERT INTO Notifications (user_id, type, message, post_id)
+           VALUES ($1, $2, $3, $4)`,
+          [postOwnerId, '좋아요', '게시글에 새 좋아요가 있습니다.', post_id]
+        );
+        console.log(`좋아요 알림 생성됨: post_id=${post_id}, user_id=${postOwnerId}`);
+      }
+    }
+
+    // 4️⃣ 좋아요 수 & 현재 사용자가 좋아요 눌렀는지 조회
+    const likeCountRes = await pool.query(
       `SELECT COUNT(*) AS like_count,
               EXISTS(SELECT 1 FROM Likes l WHERE l.post_id=$1 AND l.user_id=$2) AS is_liked
        FROM Likes
@@ -28,7 +60,7 @@ router.post('/', authenticate, async (req, res) => {
       [post_id, user_id]
     );
 
-    const { like_count, is_liked } = postRes.rows[0];
+    const { like_count, is_liked } = likeCountRes.rows[0];
     res.status(201).json({ like_count: parseInt(like_count), is_liked });
 
   } catch (err) {
@@ -41,18 +73,18 @@ router.post('/', authenticate, async (req, res) => {
 // 좋아요 취소
 // -------------------------------
 router.delete('/', authenticate, async (req, res) => {
-  const post_id = req.params.postId;
+  const post_id = parseInt(req.params.postId);
   const user_id = req.user.userId;
 
   try {
-    // 좋아요 삭제
+    // Likes에서 삭제
     await pool.query(
       `DELETE FROM Likes WHERE post_id = $1 AND user_id = $2`,
       [post_id, user_id]
     );
 
-    // 좋아요 수 & 현재 사용자가 좋아요 눌렀는지 조회
-    const postRes = await pool.query(
+    // 좋아요 수 & 상태 조회
+    const likeCountRes = await pool.query(
       `SELECT COUNT(*) AS like_count,
               EXISTS(SELECT 1 FROM Likes l WHERE l.post_id=$1 AND l.user_id=$2) AS is_liked
        FROM Likes
@@ -60,7 +92,7 @@ router.delete('/', authenticate, async (req, res) => {
       [post_id, user_id]
     );
 
-    const { like_count, is_liked } = postRes.rows[0];
+    const { like_count, is_liked } = likeCountRes.rows[0];
     res.json({ like_count: parseInt(like_count), is_liked });
 
   } catch (err) {
@@ -73,11 +105,11 @@ router.delete('/', authenticate, async (req, res) => {
 // 특정 게시물 좋아요 상태 조회 (새로고침용)
 // -------------------------------
 router.get('/', authenticate, async (req, res) => {
-  const post_id = req.params.postId;
+  const post_id = parseInt(req.params.postId);
   const user_id = req.user.userId;
 
   try {
-    const postRes = await pool.query(
+    const likeCountRes = await pool.query(
       `SELECT COUNT(*) AS like_count,
               EXISTS(SELECT 1 FROM Likes l WHERE l.post_id=$1 AND l.user_id=$2) AS is_liked
        FROM Likes
@@ -85,9 +117,9 @@ router.get('/', authenticate, async (req, res) => {
       [post_id, user_id]
     );
 
-    if (!postRes.rows.length) return res.status(404).json({ error: '게시물 없음' });
+    if (!likeCountRes.rows.length) return res.status(404).json({ error: '게시물 없음' });
 
-    const { like_count, is_liked } = postRes.rows[0];
+    const { like_count, is_liked } = likeCountRes.rows[0];
     res.json({ like_count: parseInt(like_count), is_liked });
 
   } catch (err) {
