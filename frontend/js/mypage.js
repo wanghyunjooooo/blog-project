@@ -12,7 +12,7 @@ if (!token) {
   window.location.href = 'index.html';
 }
 
-// 로그아웃
+// ----------------- 로그아웃 -----------------
 logoutBtn.addEventListener('click', async () => {
   try {
     await fetch('http://localhost:3000/auth/logout', {
@@ -26,7 +26,7 @@ logoutBtn.addEventListener('click', async () => {
   }
 });
 
-// 프로필 수정 토글
+// ----------------- 프로필 수정 토글 -----------------
 editBtn.addEventListener('click', () => {
   form.style.display = form.style.display === 'none' ? 'block' : 'none';
   document.getElementById('username').value = usernameDisplay.textContent;
@@ -40,7 +40,7 @@ document.getElementById('profilePic').addEventListener('change', e => {
   if (file) profilePreview.src = URL.createObjectURL(file);
 });
 
-// 프로필 수정 저장
+// ----------------- 프로필 수정 저장 -----------------
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const username = document.getElementById('username').value.trim();
@@ -61,9 +61,7 @@ form.addEventListener('submit', async e => {
     if (res.ok) {
       usernameDisplay.textContent = data.user.username;
       introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
-      profilePreview.src = data.user.profile_img
-        ? resolveImageUrl(data.user.profile_img)
-        : "/uploads/default_profile.png";
+      profilePreview.src = resolveImageUrl(data.user.profile_img, 'profile');
       form.style.display = 'none';
     } else alert(data.message);
   } catch (err) {
@@ -72,15 +70,21 @@ form.addEventListener('submit', async e => {
   }
 });
 
-// uploads 경로를 자동 붙이는 함수
-function resolveImageUrl(path) {
-  if (!path) return '/uploads/default_profile.png'; // 기본 이미지
+// ----------------- uploads 경로 처리 -----------------
+function resolveImageUrl(path, type = 'profile') {
+  if (!path) {
+    // 프로필 기본 이미지
+    if (type === 'profile') {
+      return 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKPelunvobTdrAM_XNl7ME6ThiVkk0yhSHyQ&s';
+    }
+    return null; // 포스트 이미지 등은 null 허용
+  }
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (path.startsWith('/')) return path;   // 이미 /로 시작하면 그대로
-  return `/uploads/${path}`;               // 없으면 /uploads/ 붙이기
+  if (path.startsWith('/')) return path;
+  return `/uploads/${path}`;
 }
 
-// 내 글 불러오기
+// ----------------- 내 글 불러오기 -----------------
 async function loadMyPosts() {
   try {
     const res = await fetch('http://localhost:3000/posts/my-posts', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -98,7 +102,7 @@ async function loadMyPosts() {
       div.className = 'card p-3 mb-3';
       let imgHTML = '';
       if (post.image_url) {
-        const imgUrl = resolveImageUrl(post.image_url);
+        const imgUrl = resolveImageUrl(post.image_url, 'post');
         if (imgUrl) imgHTML = `<img src="${imgUrl}" class="post-img">`;
       }
       div.innerHTML = `
@@ -141,7 +145,7 @@ async function loadMyPosts() {
   }
 }
 
-// 초기 실행
+// ----------------- 초기 실행 -----------------
 (async function init() {
   try {
     const res = await fetch('http://localhost:3000/users/me', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -149,7 +153,7 @@ async function loadMyPosts() {
     if (res.ok) {
       usernameDisplay.textContent = data.user.username;
       introDisplay.textContent = data.user.intro ? `소개글: ${data.user.intro}` : "소개글 없음";
-      profilePreview.src = data.user.profile_img ? resolveImageUrl(data.user.profile_img) : "/uploads/default_profile.png";
+      profilePreview.src = resolveImageUrl(data.user.profile_img, 'profile');
     } else {
       alert(data.message);
       window.location.href = 'index.html';
