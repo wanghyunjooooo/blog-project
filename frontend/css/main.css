@@ -85,25 +85,33 @@
 }
 
 /* ----------------- 알림 드롭다운 ----------------- */
+/* ----------------- 알림 드롭다운 ----------------- */
 .notif-dropdown {
-    position: relative;
+    position: static;
+    /* 부모 기준 위치 제거 */
+    z-index: 0;
+    /* 여기서는 의미 없음 */
 }
 
+/* 드롭다운 자체를 body 기준 절대 위치로 */
 .notif-dropdown-content {
     display: none;
-    position: absolute;
-    right: 0;
-    top: 120%;
+    position: fixed;
+    /* fixed로 body 기준 */
+    top: 60px;
+    /* navbar 높이에 맞춰 조정 */
+    right: 20px;
+    /* 우측 끝에서 20px */
     background-color: #fff;
     min-width: 250px;
     max-height: 350px;
     overflow-y: auto;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     border-radius: 8px;
-    z-index: 1000;
+    z-index: 9999;
+    /* 충분히 높게 */
     padding: 0.5rem 0;
 }
-
 .notif-dropdown-content.show {
     display: block;
 }
